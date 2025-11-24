@@ -50,16 +50,18 @@
         width: 90%;
         max-width: none;
         padding: 0;
-        max-height: 75dvh;
+        max-height: 65dvh;
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        margin: auto;
     }
 
     .info-scroll-content {
         padding: 20px 20px 10px 20px;
         overflow-y: auto;
         flex: 1;
+        min-height: 0;
     }
 
     .info-footer {
