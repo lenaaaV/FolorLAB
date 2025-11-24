@@ -2,12 +2,22 @@
   position: relative;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .map {
   position: absolute;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  outline: none;
+}
+
+.map canvas {
+  touch-action: none;
+  outline: none;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 .user-marker {
@@ -132,6 +142,8 @@
   flex-direction: column;
   gap: 15px;
   z-index: 20;
+  pointer-events: auto;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .recenter-btn,
@@ -185,10 +197,13 @@
   background: white;
   padding: 30px;
   border-radius: 20px;
-  width: 80%;
+  width: 85%;
   max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  -webkit-overflow-scrolling: touch;
 }
 
 .info-modal h2 {
@@ -487,8 +502,11 @@
   background: #fff;
   width: 90%;
   max-width: 420px;
+  max-height: 85vh;
   border-radius: 24px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.4s ease;
 }
@@ -537,6 +555,8 @@
 
 .profile-content {
   padding: 30px 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .profile-avatar {

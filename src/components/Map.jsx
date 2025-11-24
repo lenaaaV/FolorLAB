@@ -212,6 +212,24 @@ export default function Map() {
     return () => clearInterval(interval);
   }, [hasLocation]);
 
+  // Safety timeout: Force hide loading screen after 10 seconds if location fails
+  useEffect(() => {
+    const safetyTimeout = setTimeout(() => {
+      if (showLoading) {
+        setShowLoading(false);
+        if (!hasLocation) {
+          // Fallback to Berlin if location timed out
+          setLng(13.405);
+          setLat(52.52);
+          setHasLocation(true);
+        }
+        setShowInfo(true);
+      }
+    }, 10000);
+
+    return () => clearTimeout(safetyTimeout);
+  }, [showLoading, hasLocation]);
+
   // Ensure loading screen hides when both timer is done and location is found
   useEffect(() => {
     if (loadingProgress >= 100 && hasLocation) {

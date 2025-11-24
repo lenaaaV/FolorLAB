@@ -4,6 +4,7 @@
 @media (max-width: 575.98px) {
     .map-wrap {
         height: 100vh;
+        height: 100dvh;
     }
 
     .controls-container {
