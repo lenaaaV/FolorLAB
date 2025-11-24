@@ -194,21 +194,6 @@
 }
 
 .info-modal {
-  background: white;
-  padding: 30px;
-  border-radius: 20px;
-  width: 85%;
-  max-width: 400px;
-  max-height: 85vh;
-  overflow-y: auto;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  -webkit-overflow-scrolling: touch;
-}
-
-.info-modal h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
   font-size: 1.5rem;
   color: #333;
 }

@@ -45,14 +45,31 @@
         padding: 8px 35px;
     }
 
+    /* Info Modal Mobile Optimization */
     .info-modal {
         width: 90%;
         max-width: none;
-        padding: 20px;
+        padding: 0;
         max-height: 75dvh;
-        overflow-y: auto;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+
+    .info-scroll-content {
+        padding: 20px 20px 10px 20px;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .info-footer {
+        padding: 15px 20px 20px 20px;
+        background: white;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: center;
+        flex-shrink: 0;
+        z-index: 10;
     }
 
     .info-modal h2 {
@@ -60,14 +77,12 @@
     }
 
     .info-steps {
-        overflow-y: auto;
-        padding-right: 5px;
-        flex: 1;
+        padding-right: 0;
     }
 
     .info-close-btn {
-        margin-top: auto;
-        flex-shrink: 0;
+        margin: 0;
+        width: 100%;
     }
 
     .info-step .step-number {

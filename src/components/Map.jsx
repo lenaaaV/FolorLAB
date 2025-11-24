@@ -364,46 +364,50 @@ export default function Map() {
       {showInfo && (
         <div className="info-modal-overlay">
           <div className="info-modal">
-            <h2>Willkommen bei Spotly</h2>
-            <p className="info-intro">
-              Erkunde deine Umgebung und entdecke verborgene Orte. Der Nebel lichtet sich genau dort, wo du dich befindest – und die Welt um dich herum wird lebendig.
-            </p>
+            <div className="info-scroll-content">
+              <h2>Willkommen bei Spotly</h2>
+              <p className="info-intro">
+                Erkunde deine Umgebung und entdecke verborgene Orte. Der Nebel lichtet sich genau dort, wo du dich befindest – und die Welt um dich herum wird lebendig.
+              </p>
 
-            <div className="info-steps">
-              <div className="info-step">
-                <span className="step-number"></span>
-                <div className="step-content">
-                  <h2>Bewege dich durch die Karte</h2>
-                  <p>Alles beginnt dunkel. Sobald du dich an einem Ort befindest, wird dieser farbig sichtbar – du „enthüllst“ die Welt Schritt für Schritt.</p>
+              <div className="info-steps">
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
+                    <h2>Bewege dich durch die Karte</h2>
+                    <p>Alles beginnt dunkel. Sobald du dich an einem Ort befindest, wird dieser farbig sichtbar – du „enthüllst“ die Welt Schritt für Schritt.</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="info-step">
-                <span className="step-number"></span>
-                <div className="step-content">
-                  <h2>Entdecke Memory Boards</h2>
-                  <p>An jedem freigeschalteten Ort findest du ein Memory Board mit Audio, Fotos, Videos und Texten. Hier erzählen Menschen ihre Geschichten.</p>
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
+                    <h2>Entdecke Memory Boards</h2>
+                    <p>An jedem freigeschalteten Ort findest du ein Memory Board mit Audio, Fotos, Videos und Texten. Hier erzählen Menschen ihre Geschichten.</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="info-step">
-                <span className="step-number"></span>
-                <div className="step-content">
-                  <h2>Hinterlasse deine eigene Spur</h2>
-                  <p>Warst du schon einmal hier? Füge dein eigenes Memory hinzu und werde Teil der Geschichte des Ortes.</p>
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
+                    <h2>Hinterlasse deine eigene Spur</h2>
+                    <p>Warst du schon einmal hier? Füge dein eigenes Memory hinzu und werde Teil der Geschichte des Ortes.</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="info-step">
-                <span className="step-number"></span>
-                <div className="step-content">
-                  <h2>Sammle Spots</h2>
-                  <p>Je mehr Orte du entdeckst, desto größer wird deine persönliche, farbig leuchtende Karte.</p>
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
+                    <h2>Sammle Spots</h2>
+                    <p>Je mehr Orte du entdeckst, desto größer wird deine persönliche, farbig leuchtende Karte.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <button className="info-close-btn" onClick={() => setShowInfo(false)}>Verstanden</button>
+            <div className="info-footer">
+              <button className="info-close-btn" onClick={() => setShowInfo(false)}>Verstanden</button>
+            </div>
           </div>
         </div>
 
