@@ -442,7 +442,7 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  z-index: 30;
+  z-index: 110;
 }
 
 .profile-icon-btn {

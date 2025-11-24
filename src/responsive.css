@@ -20,8 +20,20 @@
     }
 
     .search-container {
-        top: 10px;
-        width: 90%;
+        top: 15px;
+        left: 15px;
+        transform: none;
+        width: calc(100% - 75px);
+    }
+
+    .profile-icon-container {
+        top: 15px;
+        right: 15px;
+    }
+
+    .profile-icon-btn {
+        width: 45px;
+        height: 45px;
     }
 
     .search-input-wrapper {
