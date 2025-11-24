@@ -1,0 +1,93 @@
+/* Responsive Styles for Spotly */
+
+/* Small devices (portrait phones, less than 576px) */
+@media (max-width: 575.98px) {
+    .map-wrap {
+        height: 100vh;
+    }
+
+    .controls-container {
+        bottom: 15px;
+        right: 15px;
+        gap: 10px;
+    }
+
+    .recenter-btn,
+    .info-trigger-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .search-container {
+        top: 10px;
+        width: 90%;
+    }
+
+    .search-input-wrapper {
+        border-radius: 20px;
+    }
+
+    .search-input {
+        font-size: 0.9rem;
+        padding: 8px 35px;
+    }
+
+    .info-modal {
+        width: 90%;
+        max-width: none;
+        padding: 20px;
+    }
+
+    .info-modal h2 {
+        font-size: 1.3rem;
+    }
+
+    .info-step .step-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+
+    .info-step .step-content h2 {
+        font-size: 1rem;
+    }
+}
+
+/* Medium devices (landscape phones, tablets, 576px and up) */
+@media (min-width: 576px) and (max-width: 991.98px) {
+    .controls-container {
+        bottom: 20px;
+        right: 20px;
+        gap: 12px;
+    }
+
+    .recenter-btn,
+    .info-trigger-btn {
+        width: 45px;
+        height: 45px;
+    }
+
+    .search-container {
+        top: 15px;
+        width: 80%;
+    }
+
+    .info-modal {
+        width: 85%;
+        max-width: 500px;
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .controls-container {
+        bottom: 30px;
+        right: 30px;
+    }
+
+    .recenter-btn,
+    .info-trigger-btn {
+        width: 50px;
+        height: 50px;
+    }
+}
