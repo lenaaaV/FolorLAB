@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@maptiler/geocoding-control": "^2.1.7",
+    "@supabase/supabase-js": "^2.84.0",
     "maplibre-gl": "^5.13.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

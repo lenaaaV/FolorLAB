@@ -3,7 +3,9 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './Map.css';
 
-export default function Map() {
+import { supabase } from '../supabaseClient';
+
+export default function Map({ session }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const userMarker = useRef(null);
@@ -12,6 +14,7 @@ export default function Map() {
   const [lat, setLat] = useState(null);
   const [zoom] = useState(15);
   const [visitedPoints, setVisitedPoints] = useState([]);
+  const [dbPointsLoaded, setDbPointsLoaded] = useState(false);
   const [hasLocation, setHasLocation] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -33,7 +36,7 @@ export default function Map() {
   ]);
   const [newPostText, setNewPostText] = useState("");
 
-  const API_KEY = 'bkYozeqRKy60GSaYe5j9';
+  const API_KEY = '4SKAZ4ymtxurSp8vqiLa';
   const FOG_RADIUS_METERS = 200;
   const TU_DARMSTADT = [8.6512, 49.8728];
 
@@ -259,7 +262,11 @@ export default function Map() {
           if (!map.current && mapContainer.current) {
             map.current = new maplibregl.Map({
               container: mapContainer.current,
+<<<<<<< HEAD
               style: `https://api.maptiler.com/maps/019ab7b8-e267-7a8b-b606-ef1048c8e763/style.json?key=${API_KEY}`,
+=======
+              style: `https://api.maptiler.com/maps/019ab162-cdfb-71a2-ac7c-5b04b94ab23f/style.json?key=${API_KEY}`,
+>>>>>>> c1e7e7b (added login and signup systm with database)
               center: [longitude, latitude],
               zoom: zoom
             });
@@ -343,6 +350,50 @@ export default function Map() {
       return () => navigator.geolocation.clearWatch(watchId);
     }
   }, [API_KEY, zoom, hasLocation, isFollowing]);
+
+  // Load visited points from Supabase
+  useEffect(() => {
+    if (session?.user?.id) {
+      const fetchPoints = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('visited_points')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching points:', error);
+        } else if (data && data.visited_points) {
+          setVisitedPoints(data.visited_points);
+        }
+        setDbPointsLoaded(true);
+      };
+      fetchPoints();
+    }
+  }, [session]);
+
+  // Save visited points to Supabase (debounced)
+  useEffect(() => {
+    if (!session?.user?.id || !dbPointsLoaded) return;
+
+    const savePoints = async () => {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: session.user.id,
+          visited_points: visitedPoints,
+          updated_at: new Date()
+        });
+
+      if (error) {
+        console.error('Error saving points:', error);
+      }
+    };
+
+    // Save every 5 seconds or when points change significantly
+    const timeoutId = setTimeout(savePoints, 5000);
+    return () => clearTimeout(timeoutId);
+  }, [visitedPoints, session, dbPointsLoaded]);
 
   useEffect(() => {
     drawFog();
