@@ -259,7 +259,7 @@ export default function Map() {
           if (!map.current && mapContainer.current) {
             map.current = new maplibregl.Map({
               container: mapContainer.current,
-              style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${API_KEY}`,
+              style: `https://api.maptiler.com/maps/019ab7b8-e267-7a8b-b606-ef1048c8e763/style.json?key=${API_KEY}`,
               center: [longitude, latitude],
               zoom: zoom
             });
