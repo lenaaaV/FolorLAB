@@ -401,9 +401,12 @@ export default function Map() {
                     <h2>Sammle Spots</h2>
                     <p>Je mehr Orte du entdeckst, desto größer wird deine persönliche, farbig leuchtende Karte.</p>
                   </div>
+
+
                 </div>
               </div>
             </div>
+
 
             <div className="info-footer">
               <button className="info-close-btn" onClick={() => setShowInfo(false)}>Verstanden</button>
