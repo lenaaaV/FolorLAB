@@ -404,15 +404,15 @@ export default function Map({ session }) {
 
     let targetLng, targetLat;
 
-    if (onboardingStep === 1 || onboardingStep === 2) {
-      // User location
+    if (onboardingStep >= 1 && onboardingStep <= 3) {
+      // User location (Steps 1, 2, 3)
       if (userMarker.current) {
         const pos = userMarker.current.getLngLat();
         targetLng = pos.lng;
         targetLat = pos.lat;
       }
-    } else if (onboardingStep === 3 || onboardingStep === 4) {
-      // Memory Board location (TU Darmstadt)
+    } else if (onboardingStep >= 4 && onboardingStep <= 6) {
+      // Memory Board location (Steps 4, 5, 6)
       targetLng = TU_DARMSTADT[0];
       targetLat = TU_DARMSTADT[1];
     }
@@ -442,8 +442,8 @@ export default function Map({ session }) {
           essential: true
         });
       }
-    } else if (onboardingStep === 3) {
-      // Step 3: Pan to Memory Board
+    } else if (onboardingStep === 4) {
+      // Step 4: Pan to Memory Board
       map.current.flyTo({
         center: TU_DARMSTADT,
         zoom: 17,
@@ -459,7 +459,7 @@ export default function Map({ session }) {
   };
 
   const nextOnboardingStep = () => {
-    if (onboardingStep < 4) {
+    if (onboardingStep < 6) {
       setOnboardingStep(prev => prev + 1);
     } else {
       setOnboardingStep(0); // Finish
@@ -766,24 +766,35 @@ export default function Map({ session }) {
 
             {onboardingStep === 2 && (
               <div className="onboarding-card">
-                <h2>Deine Umgebung liegt noch im Nebel – unerforscht und geheimnisvoll.</h2>
-                <p>Doch jeder Schritt von dir erweckt die Karte zum Leben und füllt sie mit leuchtenden Farben.</p>
+                <h2>Deine Umgebung liegt im Nebel.</h2>
                 <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
               </div>
             )}
 
             {onboardingStep === 3 && (
               <div className="onboarding-card">
-                <h2>Hier findest du Memory Boards – das digitale Gedächtnis der Stadt.</h2>
-                <p>Entdecke echte Momente, die andere hier erlebt haben: Videos, Audios und Nachrichten. Hinterlasse deine Story genau dort, wo sie passiert ist.</p>
+                <h2>Jeder Schritt färbt deine Welt.</h2>
                 <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
               </div>
             )}
 
             {onboardingStep === 4 && (
               <div className="onboarding-card">
-                <h2>Die volle Wahrheit gibt es nur vor Ort.</h2>
-                <p>Exklusive Inhalte, die man sich verdienen muss. Keine Fakes, nur echte Erlebnisse. Komm her und enthülle, was anderen verborgen bleibt.</p>
+                <h2>Finde Memory Boards.</h2>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+              </div>
+            )}
+
+            {onboardingStep === 5 && (
+              <div className="onboarding-card">
+                <h2>Entdecke mehr. Erschaffe Neues.</h2>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+              </div>
+            )}
+
+            {onboardingStep === 6 && (
+              <div className="onboarding-card">
+                <h2>Exklusive Inhalte nur vor Ort.</h2>
                 <button className="onboarding-btn" onClick={nextOnboardingStep}>Verstanden</button>
               </div>
             )}
