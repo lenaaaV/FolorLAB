@@ -60,54 +60,86 @@ export default function Map({ session }) {
     const canvas = canvasRef.current;
     if (!canvas || !map.current) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     const width = mapContainer.current.clientWidth;
     const height = mapContainer.current.clientHeight;
 
+    // Resize canvas if needed (debounced slightly by RAF nature, but good to check)
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
     }
 
+    // Clear entire canvas
     ctx.clearRect(0, 0, width, height);
 
+    // Draw semi-transparent white fog background
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'; // White fog
     ctx.fillRect(0, 0, width, height);
 
+    // Set composite operation to 'destination-out' to "erase" the fog
     ctx.globalCompositeOperation = 'destination-out';
 
+    const bounds = map.current.getBounds();
+    // Add some padding to bounds to ensure circles on the edge are drawn
+    // 0.01 degrees is roughly 1km, sufficient for 200m radius
+    const padding = 0.01;
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+
+    // Helper to draw a hole
+    const drawHole = (lng, lat) => {
+      // Viewport culling: simple bounding box check
+      if (lng < sw.lng - padding || lng > ne.lng + padding ||
+        lat < sw.lat - padding || lat > ne.lat + padding) {
+        return;
+      }
+
+      const { x, y } = map.current.project([lng, lat]);
+
+      // Ensure radius is at least 1px to avoid disappearing at low zooms
+      const radius = Math.max(getPixelRadius(lat), 1);
+
+      const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    // Draw user location hole
     if (userMarker.current) {
       const pos = userMarker.current.getLngLat();
-      const { x, y } = map.current.project(pos);
-      const radius = getPixelRadius(pos.lat);
-
-      const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      drawHole(pos.lng, pos.lat);
     }
 
+    // Draw visited points holes
     visitedPoints.forEach(point => {
-      const { x, y } = map.current.project([point.lng, point.lat]);
-      const radius = getPixelRadius(point.lat);
-
-      const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.fill();
+      drawHole(point.lng, point.lat);
     });
   };
+
+  // RAF Loop for smooth animation
+  useEffect(() => {
+    let animationFrameId;
+
+    const render = () => {
+      drawFog();
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [visitedPoints, hasLocation]); // Re-bind when points change
 
   const handleRecenter = () => {
     setIsFollowing(true);
@@ -262,7 +294,7 @@ export default function Map({ session }) {
           if (!map.current && mapContainer.current) {
             map.current = new maplibregl.Map({
               container: mapContainer.current,
-              style: `https://api.maptiler.com/maps/019ab7b8-e267-7a8b-b606-ef1048c8e763/style.json?key=${API_KEY}`,
+              style: `https://api.maptiler.com/maps/019ab162-cdfb-71a2-ac7c-5b04b94ab23f/style.json?key=4SKAZ4ymtxurSp8vqiLa`,
               center: [longitude, latitude],
               zoom: zoom
             });
@@ -272,11 +304,12 @@ export default function Map({ session }) {
             map.current.on('touchstart', stopFollowing);
             map.current.on('wheel', stopFollowing);
 
-            map.current.on('move', drawFog);
-            map.current.on('zoom', drawFog);
-            map.current.on('resize', drawFog);
-            map.current.on('moveend', drawFog);
-            map.current.on('load', drawFog);
+            // Removed manual drawFog listeners as we now use RAF loop
+            // map.current.on('move', drawFog);
+            // map.current.on('zoom', drawFog);
+            // map.current.on('resize', drawFog);
+            // map.current.on('moveend', drawFog);
+            // map.current.on('load', drawFog);
 
             const el = document.createElement('div');
             el.className = 'user-marker';
@@ -326,7 +359,7 @@ export default function Map({ session }) {
             });
           }
 
-          drawFog();
+          // drawFog(); // Handled by RAF
         },
         (error) => {
           console.error('Error getting location:', error);
@@ -391,9 +424,9 @@ export default function Map({ session }) {
     return () => clearTimeout(timeoutId);
   }, [visitedPoints, session, dbPointsLoaded]);
 
-  useEffect(() => {
-    drawFog();
-  }, [visitedPoints]);
+  // useEffect(() => {
+  //   drawFog();
+  // }, [visitedPoints]); // Handled by RAF
 
   // --- Onboarding Logic ---
   const [onboardingStep, setOnboardingStep] = useState(0); // 0 = inactive, 1-4 = active steps
