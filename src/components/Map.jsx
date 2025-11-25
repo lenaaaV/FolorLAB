@@ -36,7 +36,7 @@ export default function Map({ session }) {
   ]);
   const [newPostText, setNewPostText] = useState("");
 
-  const API_KEY = '4SKAZ4ymtxurSp8vqiLa';
+  const API_KEY = 'bkYozeqRKy60GSaYe5j9';
   const FOG_RADIUS_METERS = 200;
   const TU_DARMSTADT = [8.6512, 49.8728];
 
@@ -262,11 +262,7 @@ export default function Map({ session }) {
           if (!map.current && mapContainer.current) {
             map.current = new maplibregl.Map({
               container: mapContainer.current,
-<<<<<<< HEAD
               style: `https://api.maptiler.com/maps/019ab7b8-e267-7a8b-b606-ef1048c8e763/style.json?key=${API_KEY}`,
-=======
-              style: `https://api.maptiler.com/maps/019ab162-cdfb-71a2-ac7c-5b04b94ab23f/style.json?key=${API_KEY}`,
->>>>>>> c1e7e7b (added login and signup systm with database)
               center: [longitude, latitude],
               zoom: zoom
             });
