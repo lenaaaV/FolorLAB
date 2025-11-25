@@ -3,7 +3,9 @@
   width: 100%;
   height: 100vh;
   height: 100dvh;
+  /* Dynamic viewport height for mobile browsers */
   overflow: hidden;
+  /* Prevent white flashes */
 }
 
 .map {
@@ -137,13 +139,14 @@
 .controls-container {
   position: absolute;
   bottom: 30px;
-  right: 30px;
+  right: 20px;
   display: flex;
   flex-direction: column;
   gap: 15px;
   z-index: 20;
   pointer-events: auto;
   padding-bottom: env(safe-area-inset-bottom);
+  padding-right: env(safe-area-inset-right);
 }
 
 .recenter-btn,
@@ -198,12 +201,18 @@
   background: white;
   padding: 0;
   border-radius: 20px;
-  width: 85%;
+  width: 90%;
   max-width: 400px;
+<<<<<<< HEAD
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+=======
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow-y: auto;
+>>>>>>> 3df8b4b (merge bitte klapp ya)
   text-align: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
@@ -340,9 +349,10 @@
 
 .board-modal {
   background: #fff;
-  width: 90%;
+  width: 95%;
   max-width: 500px;
   height: 80vh;
+  height: 80dvh;
   border-radius: 20px;
   display: flex;
   flex-direction: column;
@@ -458,6 +468,8 @@
   top: 20px;
   right: 20px;
   z-index: 110;
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
 }
 
 .profile-icon-btn {
@@ -515,9 +527,10 @@
 
 .profile-modal {
   background: #fff;
-  width: 90%;
+  width: 95%;
   max-width: 420px;
   max-height: 85vh;
+  max-height: 85dvh;
   border-radius: 24px;
   overflow: hidden;
   display: flex;
@@ -810,7 +823,9 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  width: 400px;
+  width: 90%;
+  max-width: 400px;
+  padding-top: env(safe-area-inset-top);
   max-width: 90vw;
 }
 

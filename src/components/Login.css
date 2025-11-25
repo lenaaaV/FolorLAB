@@ -3,6 +3,7 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
+  height: 100dvh;
   background-color: #000;
   color: #fff;
   font-family: 'Inter', sans-serif;
@@ -11,10 +12,11 @@
 .login-box {
   width: 100%;
   max-width: 400px;
-  padding: 40px;
+  padding: 30px 20px;
   text-align: center;
   border: 1px solid #333;
-  border-radius: 0; /* Sharp edges for clean look */
+  border-radius: 0;
+  /* Sharp edges for clean look */
   background-color: #000;
 }
 
@@ -48,7 +50,8 @@
   background: #111;
   border: 1px solid #333;
   color: #fff;
-  font-size: 1rem;
+  font-size: 16px;
+  /* Prevent zoom on iOS */
   outline: none;
   transition: border-color 0.3s ease;
 }
