@@ -395,6 +395,90 @@ export default function Map({ session }) {
     drawFog();
   }, [visitedPoints]);
 
+  // --- Onboarding Logic ---
+  const [onboardingStep, setOnboardingStep] = useState(0); // 0 = inactive, 1-4 = active steps
+
+  // Helper to get screen coordinates for spotlight
+  const getSpotlightStyle = () => {
+    if (!map.current || onboardingStep === 0) return {};
+
+    let targetLng, targetLat;
+
+    if (onboardingStep === 1 || onboardingStep === 2) {
+      // User location
+      if (userMarker.current) {
+        const pos = userMarker.current.getLngLat();
+        targetLng = pos.lng;
+        targetLat = pos.lat;
+      }
+    } else if (onboardingStep === 3 || onboardingStep === 4) {
+      // Memory Board location (TU Darmstadt)
+      targetLng = TU_DARMSTADT[0];
+      targetLat = TU_DARMSTADT[1];
+    }
+
+    if (targetLng && targetLat) {
+      const point = map.current.project([targetLng, targetLat]);
+      return {
+        '--spotlight-x': `${point.x}px`,
+        '--spotlight-y': `${point.y}px`
+      };
+    }
+    return {};
+  };
+
+  // Handle Onboarding Transitions
+  useEffect(() => {
+    if (!map.current) return;
+
+    if (onboardingStep === 1) {
+      // Step 1: Zoom to user
+      if (userMarker.current) {
+        const pos = userMarker.current.getLngLat();
+        map.current.flyTo({
+          center: pos,
+          zoom: 17,
+          duration: 1500,
+          essential: true
+        });
+      }
+    } else if (onboardingStep === 3) {
+      // Step 3: Pan to Memory Board
+      map.current.flyTo({
+        center: TU_DARMSTADT,
+        zoom: 17,
+        duration: 1500,
+        essential: true
+      });
+    }
+  }, [onboardingStep]);
+
+  const startOnboarding = () => {
+    setShowInfo(false);
+    setOnboardingStep(1);
+  };
+
+  const nextOnboardingStep = () => {
+    if (onboardingStep < 4) {
+      setOnboardingStep(prev => prev + 1);
+    } else {
+      setOnboardingStep(0); // Finish
+
+      // Fly back to user location
+      if (userMarker.current && map.current) {
+        const pos = userMarker.current.getLngLat();
+        map.current.flyTo({
+          center: pos,
+          zoom: 16,
+          duration: 1500,
+          essential: true
+        });
+        setIsFollowing(true);
+      }
+    }
+  };
+
+
   return (
     <div className="map-wrap">
       {showLoading && (
@@ -464,7 +548,7 @@ export default function Map({ session }) {
 
 
             <div className="info-footer">
-              <button className="info-close-btn" onClick={() => setShowInfo(false)}>Verstanden</button>
+              <button className="info-close-btn" onClick={startOnboarding}>Verstanden</button>
             </div>
           </div>
         </div>
@@ -666,6 +750,46 @@ export default function Map({ session }) {
           </button>
         )}
       </div>
+
+      {/* Onboarding Overlay */}
+      {onboardingStep > 0 && (
+        <div className={`onboarding-overlay step-${onboardingStep}`} style={getSpotlightStyle()}>
+          <div className="spotlight-mask"></div>
+
+          <div className="onboarding-content">
+            {onboardingStep === 1 && (
+              <div className="onboarding-card">
+                <h2>Hier befindest du dich gerade.</h2>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+              </div>
+            )}
+
+            {onboardingStep === 2 && (
+              <div className="onboarding-card">
+                <h2>Deine Umgebung liegt noch im Nebel – unerforscht und geheimnisvoll.</h2>
+                <p>Doch jeder Schritt von dir erweckt die Karte zum Leben und füllt sie mit leuchtenden Farben.</p>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+              </div>
+            )}
+
+            {onboardingStep === 3 && (
+              <div className="onboarding-card">
+                <h2>Hier findest du Memory Boards – das digitale Gedächtnis der Stadt.</h2>
+                <p>Entdecke echte Momente, die andere hier erlebt haben: Videos, Audios und Nachrichten. Hinterlasse deine Story genau dort, wo sie passiert ist.</p>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+              </div>
+            )}
+
+            {onboardingStep === 4 && (
+              <div className="onboarding-card">
+                <h2>Die volle Wahrheit gibt es nur vor Ort.</h2>
+                <p>Exklusive Inhalte, die man sich verdienen muss. Keine Fakes, nur echte Erlebnisse. Komm her und enthülle, was anderen verborgen bleibt.</p>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Verstanden</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div >
   );
 }
