@@ -540,6 +540,14 @@ export default function Map({ session }) {
                 <div className="info-step">
                   <span className="step-number"></span>
                   <div className="step-content">
+                    <h2>Wichtig: Standort & Browser</h2>
+                    <p>Bitte erlaube den Zugriff auf deinen Standort. Falls keine Karte angezeigt wird, versuche es bitte mit einem anderen Browser.</p>
+                  </div>
+                </div>
+
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
                     <h2>Disclaimer</h2>
                     <p>Du erlebst gerade den Anfang unserer Reise (Clickable MVP). Wir entwickeln Spotly ständig weiter und neue Features sind bereits in Arbeit. Aktuell wartet das erste Memory Board in Darmstadt an der TU Uni darauf, von dir entdeckt zu werden.</p>
                   </div>

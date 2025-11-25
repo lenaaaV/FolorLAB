@@ -36,6 +36,22 @@ export default function Login() {
         }
     };
 
+    const handleDemoLogin = async () => {
+        setLoading(true);
+        setMessage('');
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email: 'Spotly@demo.com',
+                password: 'ISExGoogle',
+            });
+            if (error) throw error;
+        } catch (error) {
+            setMessage(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="login-container">
             <div className="login-box">
@@ -68,6 +84,19 @@ export default function Login() {
                         {loading ? 'Laden...' : (isSignUp ? 'Registrieren' : 'Anmelden')}
                     </button>
                 </form>
+
+                <button
+                    type="button"
+                    onClick={handleDemoLogin}
+                    className="demo-login-button"
+                    disabled={loading}
+                >
+                    Demo Account
+                </button>
+
+                <p className="login-message" style={{ fontSize: '0.8rem', marginTop: '20px', lineHeight: '1.4' }}>
+                    Bitte Standort aktivieren. Falls keine Karte angezeigt wird, bitte einen anderen Browser verwenden.
+                </p>
 
                 {message && <div className="login-message">{message}</div>}
 

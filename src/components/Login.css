@@ -83,6 +83,30 @@
   cursor: not-allowed;
 }
 
+.demo-login-button {
+  width: 100%;
+  padding: 15px;
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: opacity 0.3s ease;
+  margin-top: 10px;
+}
+
+.demo-login-button:hover {
+  opacity: 0.9;
+}
+
+.demo-login-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .login-message {
   margin-top: 20px;
   font-size: 0.9rem;
