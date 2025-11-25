@@ -444,6 +444,7 @@ export default function Map({ session }) {
       }
     } else if (onboardingStep === 4) {
       // Step 4: Pan to Memory Board
+      setIsFollowing(false); // Stop following user location
       map.current.flyTo({
         center: TU_DARMSTADT,
         zoom: 17,
