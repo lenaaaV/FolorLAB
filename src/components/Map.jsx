@@ -451,6 +451,14 @@ export default function Map({ session }) {
 
 
                 </div>
+
+                <div className="info-step">
+                  <span className="step-number"></span>
+                  <div className="step-content">
+                    <h2>Disclaimer</h2>
+                    <p>Du erlebst gerade den Anfang unserer Reise (Clickable MVP). Wir entwickeln Spotly ständig weiter und neue Features sind bereits in Arbeit. Aktuell wartet das erste Memory Board in Darmstadt an der TU Uni darauf, von dir entdeckt zu werden.</p>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -203,16 +203,10 @@
   border-radius: 20px;
   width: 90%;
   max-width: 400px;
-<<<<<<< HEAD
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-=======
-  max-height: 80vh;
-  max-height: 80dvh;
-  overflow-y: auto;
->>>>>>> 3df8b4b (merge bitte klapp ya)
   text-align: center;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
