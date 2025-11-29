@@ -403,20 +403,20 @@ export default function Map({ session }) {
     }
   }, [API_KEY, zoom, hasLocation, isFollowing]);
 
-  // 2. Safety Timeout (Fallback)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!map.current) {
-        console.warn("Map not initialized after timeout. Using fallback location.");
-        setLng(TU_DARMSTADT[0]);
-        setLat(TU_DARMSTADT[1]);
-        setHasLocation(true);
-        initMap(TU_DARMSTADT[0], TU_DARMSTADT[1]);
-      }
-    }, 2000); // 2 seconds timeout
+  // 2. Safety Timeout (Fallback) - Removed to prioritize real GPS
+  // useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     if (!map.current) {
+  //       console.warn("Map not initialized after timeout. Using fallback location.");
+  //       setLng(TU_DARMSTADT[0]);
+  //       setLat(TU_DARMSTADT[1]);
+  //       setHasLocation(true);
+  //       initMap(TU_DARMSTADT[0], TU_DARMSTADT[1]);
+  //     }
+  //   }, 2000); // 2 seconds timeout
 
-    return () => clearTimeout(timer);
-  }, []);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   // Load visited points from Supabase
   useEffect(() => {
