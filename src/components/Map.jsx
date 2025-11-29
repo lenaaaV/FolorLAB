@@ -42,11 +42,12 @@ export default function Map({ session }) {
   const [showResults, setShowResults] = useState(false);
 
   // Memory Board State
-  const [showBoard, setShowBoard] = useState(false);
+  const [showBoard, setShowBoard] = useState(null);
 
   const API_KEY = 'bkYozeqRKy60GSaYe5j9';
   const FOG_RADIUS_METERS = 200;
   const TU_DARMSTADT = [8.6512, 49.8728];
+  const ISE_GOOGLE_LOC = [8.65763, 49.87653];
 
   const loadingMessages = [
     "Satelliten werden poliert...",
@@ -327,13 +328,47 @@ export default function Map({ session }) {
       `;
       boardEl.onclick = (e) => {
         e.stopPropagation();
-        setShowBoard(true);
+        setShowBoard({
+          name: "TU Darmstadt",
+          image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1000"
+        });
       };
 
       boardContainer.appendChild(boardEl);
 
       new maplibregl.Marker({ element: boardContainer })
         .setLngLat(TU_DARMSTADT)
+        .addTo(map.current);
+
+      // ISE x Google Marker
+      const iseContainer = document.createElement('div');
+      iseContainer.className = 'board-marker-container';
+
+      const iseEl = document.createElement('div');
+      iseEl.className = 'board-marker';
+      iseEl.innerHTML = `
+        <div class="board-icon-wrapper">
+          <div class="board-leaf" style="background: #4285F4;"></div>
+          <div class="board-body">
+            <div class="board-content-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+          </div>
+          <div class="board-post"></div>
+        </div>
+      `;
+      iseEl.onclick = (e) => {
+        e.stopPropagation();
+        setShowBoard({
+          name: "ISE x Google",
+          image: "/ise_google.png"
+        });
+      };
+
+      iseContainer.appendChild(iseEl);
+
+      new maplibregl.Marker({ element: iseContainer })
+        .setLngLat(ISE_GOOGLE_LOC)
         .addTo(map.current);
 
     } catch (error) {
@@ -682,9 +717,9 @@ export default function Map({ session }) {
 
       {showBoard && (
         <MemoryBoard
-          onClose={() => setShowBoard(false)}
-          locationName="TU Darmstadt"
-          locationImage="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1000"
+          onClose={() => setShowBoard(null)}
+          locationName={showBoard.name}
+          locationImage={showBoard.image}
         />
       )}
 
