@@ -714,23 +714,46 @@
 
 /* Search Bar - Light Glassmorphism Design */
 /* Search Bar - Light Glassmorphism Design */
-.search-container {
+/* Top Bar Layout */
+.map-top-bar {
   position: absolute;
   top: 20px;
   left: 0;
   right: 0;
+  padding: 0 20px;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   z-index: 100;
   pointer-events: none;
+  /* Let clicks pass through to map */
+}
+
+.map-top-bar>* {
+  pointer-events: auto;
+  /* Re-enable clicks for children */
+}
+
+/* Search Bar - Light Glassmorphism Design */
+.search-container {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  /* Align to right */
+  flex: 1;
+  max-width: 400px;
 }
 
 .search-input-wrapper {
   position: relative;
-  width: 90%;
-  max-width: 400px;
-  pointer-events: auto;
+  width: 45px;
+  /* Collapsed width */
+  height: 45px;
   display: flex;
   align-items: center;
   background: rgba(255, 255, 255, 0.9);
@@ -738,38 +761,52 @@
   border-radius: 30px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  cursor: pointer;
 }
 
-.search-input-wrapper:hover {
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
-  transform: translateY(-1px);
+.search-input-wrapper:hover,
+.search-input-wrapper:focus-within,
+.search-input-wrapper.expanded {
+  width: 100%;
+  /* Expanded width */
 }
 
 .search-icon {
   position: absolute;
-  left: 15px;
+  left: 12px;
   color: var(--primary-dark);
+  min-width: 20px;
 }
 
 .search-input {
   width: 100%;
-  padding: 14px 45px;
+  padding: 12px 40px 12px 45px;
   border: none;
   background: transparent;
   font-size: 1rem;
   color: var(--text-color);
   font-weight: 500;
   outline: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.search-input-wrapper:hover .search-input,
+.search-input-wrapper:focus-within .search-input,
+.search-input-wrapper.expanded .search-input {
+  opacity: 1;
 }
 
 .search-input::placeholder {
   color: var(--text-light);
+  white-space: nowrap;
 }
 
 .search-clear {
   position: absolute;
-  right: 15px;
+  right: 10px;
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -782,8 +819,7 @@
 }
 
 .search-results {
-  width: 90%;
-  max-width: 400px;
+  width: 100%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 16px;
