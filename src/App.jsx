@@ -4,6 +4,7 @@ import Map from './components/Map';
 import Login from './components/Login';
 import Navbar from './components/Navbar';
 import Profile from './components/Profile';
+import Collection from './components/Collection';
 import './App.css';
 
 function App() {
@@ -33,12 +34,7 @@ function App() {
       <div className="content-area">
         {activeTab === 'map' && <Map session={session} />}
 
-        {activeTab === 'collection' && (
-          <div className="placeholder-view">
-            <h2>Deine Sammlung</h2>
-            <p>Hier siehst du bald deine gesammelten Momente.</p>
-          </div>
-        )}
+        {activeTab === 'collection' && <Collection session={session} />}
 
         {activeTab === 'profile' && <Profile session={session} />}
       </div>

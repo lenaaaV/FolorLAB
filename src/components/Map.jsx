@@ -488,6 +488,55 @@ export default function Map({ session }) {
   };
 
   // Handle Onboarding Transitions
+  const onboardingStepRef = useRef(0);
+  const onboardingOverlayRef = useRef(null);
+
+  useEffect(() => {
+    onboardingStepRef.current = onboardingStep;
+    updateSpotlight(); // Update immediately on step change
+  }, [onboardingStep]);
+
+  const updateSpotlight = () => {
+    if (!map.current || onboardingStepRef.current === 0 || !onboardingOverlayRef.current) return;
+
+    let targetLng, targetLat;
+    const step = onboardingStepRef.current;
+
+    if (step >= 1 && step <= 3) {
+      // User location
+      if (userMarker.current) {
+        const pos = userMarker.current.getLngLat();
+        targetLng = pos.lng;
+        targetLat = pos.lat;
+      }
+    } else if (step >= 4 && step <= 6) {
+      // Memory Board location
+      targetLng = TU_DARMSTADT[0];
+      targetLat = TU_DARMSTADT[1];
+    }
+
+    if (targetLng && targetLat) {
+      const point = map.current.project([targetLng, targetLat]);
+      onboardingOverlayRef.current.style.setProperty('--spotlight-x', `${point.x}px`);
+      onboardingOverlayRef.current.style.setProperty('--spotlight-y', `${point.y}px`);
+    }
+  };
+
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Attach updateSpotlight to map move events to keep it synced during animations
+    map.current.on('move', updateSpotlight);
+    map.current.on('moveend', updateSpotlight);
+
+    return () => {
+      if (map.current) {
+        map.current.off('move', updateSpotlight);
+        map.current.off('moveend', updateSpotlight);
+      }
+    };
+  }, [map.current]); // Re-attach if map instance changes (though it shouldn't often)
+
   useEffect(() => {
     if (!map.current) return;
 
@@ -709,7 +758,11 @@ export default function Map({ session }) {
 
       {/* Onboarding Overlay */}
       {onboardingStep > 0 && (
-        <div className={`onboarding-overlay step-${onboardingStep}`} style={getSpotlightStyle()}>
+        <div
+          ref={onboardingOverlayRef}
+          className={`onboarding-overlay step-${onboardingStep}`}
+          style={getSpotlightStyle()}
+        >
           <div className="spotlight-mask"></div>
 
           <div className="onboarding-content">
