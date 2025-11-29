@@ -1,7 +1,25 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --primary-color: #CDE7D0;
+  /* Ultra Soft Tea Green */
+  --primary-light: #E8F5E9;
+  /* Almost White Green */
+  --primary-dark: #A9D0B6;
+  /* Desaturated Soft Green */
+  --accent-color: #FFD6A5;
+  /* Soft Peach */
+  --bg-color: #FDFDFD;
+  /* Pure Soft White */
+  --text-color: #5D6D7E;
+  /* Soft Blue-Grey Text */
+  --text-light: #839192;
+  /* Light Blue-Grey Text */
+  --card-bg: #ffffff;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  font-family: 'Outfit', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
 * {
