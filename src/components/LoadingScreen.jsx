@@ -1,7 +1,7 @@
 import React from 'react';
 import './LoadingScreen.css';
 
-export default function LoadingScreen({ text }) {
+export default function LoadingScreen({ text, progress }) {
     return (
         <div className="loading-screen">
             <div className="loading-content">
@@ -15,6 +15,15 @@ export default function LoadingScreen({ text }) {
                     <div className="dot dot-tr"></div>
                     <div className="dot dot-br"></div>
                 </div>
+                {progress !== undefined && (
+                    <div className="loading-progress-container">
+                        <div
+                            className="loading-progress-bar"
+                            style={{ width: `${progress}%` }}
+                        ></div>
+                    </div>
+                )}
+
                 <div className="loading-text">{text || "Laden..."}</div>
             </div>
         </div>

@@ -533,7 +533,7 @@ export default function Map({ session }) {
   return (
     <div className="map-wrap">
       {showLoading && (
-        <LoadingScreen text={loadingText} />
+        <LoadingScreen text={loadingText} progress={loadingProgress} />
       )}
 
       {showInfo && (
