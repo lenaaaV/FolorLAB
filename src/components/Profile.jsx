@@ -8,12 +8,15 @@ export default function Profile({ session }) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
+    const [avatarUrl, setAvatarUrl] = useState(null);
+    const [uploading, setUploading] = useState(false);
+
     useEffect(() => {
         if (session?.user?.id) {
             const fetchProfile = async () => {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('visited_points, username')
+                    .select('visited_points, username, avatar_url')
                     .eq('id', session.user.id)
                     .single();
 
@@ -22,12 +25,62 @@ export default function Profile({ session }) {
                 } else if (data) {
                     setVisitedPoints(data.visited_points || []);
                     setUsername(data.username || '');
+                    if (data.avatar_url) downloadImage(data.avatar_url);
                 }
                 setLoading(false);
             };
             fetchProfile();
         }
     }, [session]);
+
+    const downloadImage = async (path) => {
+        try {
+            const { data, error } = await supabase.storage.from('avatars').download(path);
+            if (error) {
+                throw error;
+            }
+            const url = URL.createObjectURL(data);
+            setAvatarUrl(url);
+        } catch (error) {
+            console.log('Error downloading image: ', error.message);
+        }
+    };
+
+    const uploadAvatar = async (event) => {
+        try {
+            setUploading(true);
+
+            if (!event.target.files || event.target.files.length === 0) {
+                throw new Error('You must select an image to upload.');
+            }
+
+            const file = event.target.files[0];
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            let { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: filePath })
+                .eq('id', session.user.id);
+
+            if (updateError) {
+                throw updateError;
+            }
+
+            downloadImage(filePath);
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const handleUpdateProfile = async () => {
         setSaving(true);
@@ -52,11 +105,36 @@ export default function Profile({ session }) {
     return (
         <div className="profile-view">
             <div className="profile-header-section">
-                <div className="profile-avatar-large">
-                    <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
+                <div className="profile-avatar-wrapper">
+                    <div className="profile-avatar-large">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar" className="avatar-image" />
+                        ) : (
+                            <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        )}
+                    </div>
+                    <label className="edit-avatar-btn" htmlFor="single">
+                        {uploading ? '...' : (
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                        )}
+                    </label>
+                    <input
+                        style={{
+                            visibility: 'hidden',
+                            position: 'absolute',
+                        }}
+                        type="file"
+                        id="single"
+                        accept="image/*"
+                        onChange={uploadAvatar}
+                        disabled={uploading}
+                    />
                 </div>
                 <h2>Dein Profil</h2>
 
@@ -75,6 +153,7 @@ export default function Profile({ session }) {
                 <p className="profile-email">{session?.user?.email}</p>
             </div>
 
+            <div className="profile-section-title">Statistiken</div>
             <div className="profile-stats-grid">
                 <div className="stat-card">
                     <div className="stat-icon-wrapper">

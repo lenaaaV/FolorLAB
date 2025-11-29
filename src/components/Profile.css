@@ -17,6 +17,11 @@
     width: 100%;
 }
 
+.profile-avatar-wrapper {
+    position: relative;
+    margin-bottom: 25px;
+}
+
 .profile-avatar-large {
     width: 110px;
     height: 110px;
@@ -26,9 +31,37 @@
     justify-content: center;
     align-items: center;
     box-shadow: 0 15px 35px rgba(169, 208, 182, 0.25);
-    margin-bottom: 25px;
     color: var(--primary-dark);
     border: 5px solid white;
+    overflow: hidden;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.edit-avatar-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 36px;
+    height: 36px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    border: 3px solid white;
+    transition: transform 0.2s;
+}
+
+.edit-avatar-btn:hover {
+    transform: scale(1.1);
 }
 
 .profile-header-section h2 {
@@ -147,10 +180,22 @@
     font-weight: 500;
 }
 
+.profile-section-title {
+    width: 100%;
+    max-width: 380px;
+    text-align: left;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin-bottom: 15px;
+    padding-left: 5px;
+}
+
 .profile-actions {
     width: 100%;
     max-width: 380px;
     margin-top: auto;
+    padding-bottom: 20px;
 }
 
 .sign-out-btn {

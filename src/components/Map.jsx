@@ -6,6 +6,9 @@ import MemoryBoard from './MemoryBoard';
 import LoadingScreen from './LoadingScreen';
 
 import { supabase } from '../supabaseClient';
+import { calculateLevel } from '../utils/levelLogic';
+import LevelIndicator from './LevelIndicator';
+import ChallengesModal from './ChallengesModal';
 
 export default function Map({ session }) {
   const mapContainer = useRef(null);
@@ -23,7 +26,15 @@ export default function Map({ session }) {
   const [showLoading, setShowLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Satelliten werden poliert...");
   const [showInfo, setShowInfo] = useState(false);
-  // Profile state removed (handled by Navbar)
+  const [showChallenges, setShowChallenges] = useState(false);
+
+  // Level System State
+  const [levelData, setLevelData] = useState({
+    level: 1,
+    currentXP: 0,
+    nextLevelXP: 1000,
+    progress: 0
+  });
 
   // Address Search State
   const [searchQuery, setSearchQuery] = useState('');
@@ -421,6 +432,7 @@ export default function Map({ session }) {
           console.error('Error fetching points:', error);
         } else if (data && data.visited_points) {
           setVisitedPoints(data.visited_points);
+          setLevelData(calculateLevel(data.visited_points));
         }
         setDbPointsLoaded(true);
       };
@@ -488,6 +500,55 @@ export default function Map({ session }) {
   };
 
   // Handle Onboarding Transitions
+  const onboardingStepRef = useRef(0);
+  const onboardingOverlayRef = useRef(null);
+
+  useEffect(() => {
+    onboardingStepRef.current = onboardingStep;
+    updateSpotlight(); // Update immediately on step change
+  }, [onboardingStep]);
+
+  const updateSpotlight = () => {
+    if (!map.current || onboardingStepRef.current === 0 || !onboardingOverlayRef.current) return;
+
+    let targetLng, targetLat;
+    const step = onboardingStepRef.current;
+
+    if (step >= 1 && step <= 3) {
+      // User location
+      if (userMarker.current) {
+        const pos = userMarker.current.getLngLat();
+        targetLng = pos.lng;
+        targetLat = pos.lat;
+      }
+    } else if (step >= 4 && step <= 6) {
+      // Memory Board location
+      targetLng = TU_DARMSTADT[0];
+      targetLat = TU_DARMSTADT[1];
+    }
+
+    if (targetLng && targetLat) {
+      const point = map.current.project([targetLng, targetLat]);
+      onboardingOverlayRef.current.style.setProperty('--spotlight-x', `${point.x}px`);
+      onboardingOverlayRef.current.style.setProperty('--spotlight-y', `${point.y}px`);
+    }
+  };
+
+  useEffect(() => {
+    if (!map.current) return;
+
+    // Attach updateSpotlight to map move events to keep it synced during animations
+    map.current.on('move', updateSpotlight);
+    map.current.on('moveend', updateSpotlight);
+
+    return () => {
+      if (map.current) {
+        map.current.off('move', updateSpotlight);
+        map.current.off('moveend', updateSpotlight);
+      }
+    };
+  }, [map.current]); // Re-attach if map instance changes (though it shouldn't often)
+
   useEffect(() => {
     if (!map.current) return;
 
@@ -628,65 +689,93 @@ export default function Map({ session }) {
       )}
 
       <div ref={mapContainer} className="map" />
-      <canvas ref={canvasRef} className="fog-overlay" />
 
-      {/* Address Search Bar */}
-      <div className="search-container">
-        <div className="search-input-wrapper">
-          <svg className="search-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Adresse suchen..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              handleSearch(e.target.value);
-            }}
-            onFocus={() => searchResults.length > 0 && setShowResults(true)}
-          />
-          {searchQuery && (
-            <button
-              className="search-clear"
-              onClick={() => {
-                setSearchQuery('');
-                setSearchResults([]);
-                setShowResults(false);
+      {/* Top Bar Container */}
+      <div className="map-top-bar">
+        <LevelIndicator
+          level={levelData.level}
+          currentXP={levelData.currentXP}
+          nextLevelXP={levelData.nextLevelXP}
+          progress={levelData.progress}
+          onClick={() => setShowChallenges(true)}
+          style={{
+            // Reset absolute positioning as it's now in flex container
+            position: 'relative',
+            top: 'auto',
+            left: 'auto',
+            transform: 'none',
+            zIndex: 10,
+            width: 'auto',
+            maxWidth: 'none',
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(12px)'
+          }}
+        />
+
+        {/* Address Search Bar */}
+        <div className="search-container">
+          <div className={`search-input-wrapper ${searchQuery ? 'expanded' : ''}`}>
+            <svg className="search-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Suchen..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                handleSearch(e.target.value);
               }}
-            >
-              ×
-            </button>
+              onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            />
+            {searchQuery && (
+              <button
+                className="search-clear"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchResults([]);
+                  setShowResults(false);
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {showResults && searchResults.length > 0 && (
+            <div className="search-results">
+              {searchResults.map((result, index) => (
+                <div
+                  key={index}
+                  className="search-result-item"
+                  onClick={() => handleSelectLocation(result)}
+                >
+                  <svg className="result-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  <div className="result-text">
+                    <div className="result-name">{result.text || result.place_name}</div>
+                    {result.place_name && result.text !== result.place_name && (
+                      <div className="result-address">{result.place_name}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-
-        {showResults && searchResults.length > 0 && (
-          <div className="search-results">
-            {searchResults.map((result, index) => (
-              <div
-                key={index}
-                className="search-result-item"
-                onClick={() => handleSelectLocation(result)}
-              >
-                <svg className="result-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <div className="result-text">
-                  <div className="result-name">{result.text || result.place_name}</div>
-                  {result.place_name && result.text !== result.place_name && (
-                    <div className="result-address">{result.place_name}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
 
+
+      {showChallenges && (
+        <ChallengesModal onClose={() => setShowChallenges(false)} />
+      )}
+
+      <canvas ref={canvasRef} className="fog-overlay" />
 
       <div className="controls-container">
         <button className="info-trigger-btn" onClick={() => setShowInfo(true)}>
@@ -709,7 +798,11 @@ export default function Map({ session }) {
 
       {/* Onboarding Overlay */}
       {onboardingStep > 0 && (
-        <div className={`onboarding-overlay step-${onboardingStep}`} style={getSpotlightStyle()}>
+        <div
+          ref={onboardingOverlayRef}
+          className={`onboarding-overlay step-${onboardingStep}`}
+          style={getSpotlightStyle()}
+        >
           <div className="spotlight-mask"></div>
 
           <div className="onboarding-content">
