@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './Map.css';
 import MemoryBoard from './MemoryBoard';
+import LoadingScreen from './LoadingScreen';
 
 import { supabase } from '../supabaseClient';
 
@@ -532,28 +533,21 @@ export default function Map({ session }) {
   return (
     <div className="map-wrap">
       {showLoading && (
-        <div className="loading-screen">
-          <div className="loading-content">
-            <div className="loading-text">{loadingText}</div>
-            <div className="progress-bar-container">
-              <div className="progress-bar" style={{ width: `${loadingProgress}%` }}></div>
-            </div>
-          </div>
-        </div>
+        <LoadingScreen text={loadingText} />
       )}
 
       {showInfo && (
         <div className="info-modal-overlay">
           <div className="info-modal">
             <div className="info-scroll-content">
-              <h2>Willkommen bei Spotly</h2>
+              <h2>Willkommen bei Folor</h2>
               <p className="info-intro">
                 Erkunde deine Umgebung und entdecke verborgene Orte. Der Nebel lichtet sich genau dort, wo du dich befindest – und die Welt um dich herum wird lebendig.
               </p>
 
               <div className="info-steps">
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">1</span>
                   <div className="step-content">
                     <h2>Bewege dich durch die Karte</h2>
                     <p>Alles beginnt dunkel. Sobald du dich an einem Ort befindest, wird dieser farbig sichtbar – du „enthüllst“ die Welt Schritt für Schritt.</p>
@@ -561,7 +555,7 @@ export default function Map({ session }) {
                 </div>
 
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">2</span>
                   <div className="step-content">
                     <h2>Entdecke Memory Boards</h2>
                     <p>An jedem freigeschalteten Ort findest du ein Memory Board mit Audio, Fotos, Videos und Texten. Hier erzählen Menschen ihre Geschichten.</p>
@@ -569,7 +563,7 @@ export default function Map({ session }) {
                 </div>
 
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">3</span>
                   <div className="step-content">
                     <h2>Hinterlasse deine eigene Spur</h2>
                     <p>Warst du schon einmal hier? Füge dein eigenes Memory hinzu und werde Teil der Geschichte des Ortes.</p>
@@ -577,7 +571,7 @@ export default function Map({ session }) {
                 </div>
 
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">4</span>
                   <div className="step-content">
                     <h2>Sammle Spots</h2>
                     <p>Je mehr Orte du entdeckst, desto größer wird deine persönliche, farbig leuchtende Karte.</p>
@@ -587,7 +581,7 @@ export default function Map({ session }) {
                 </div>
 
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">5</span>
                   <div className="step-content">
                     <h2>Wichtig: Standort & Browser</h2>
                     <p>Bitte erlaube den Zugriff auf deinen Standort. Falls keine Karte angezeigt wird, versuche es bitte mit einem anderen Browser.</p>
@@ -595,10 +589,10 @@ export default function Map({ session }) {
                 </div>
 
                 <div className="info-step">
-                  <span className="step-number"></span>
+                  <span className="step-number">6</span>
                   <div className="step-content">
                     <h2>Disclaimer</h2>
-                    <p>Du erlebst gerade den Anfang unserer Reise (Clickable MVP). Wir entwickeln Spotly ständig weiter und neue Features sind bereits in Arbeit. Aktuell wartet das erste Memory Board in Darmstadt an der TU Uni darauf, von dir entdeckt zu werden.</p>
+                    <p>Du erlebst gerade den Anfang unserer Reise (Clickable MVP). Wir entwickeln Folor ständig weiter und neue Features sind bereits in Arbeit. Aktuell wartet das erste Memory Board in Darmstadt an der TU Uni darauf, von dir entdeckt zu werden.</p>
                   </div>
                 </div>
               </div>

@@ -41,7 +41,7 @@ export default function Login() {
         setMessage('');
         try {
             const { error } = await supabase.auth.signInWithPassword({
-                email: 'Spotly@demo.com',
+                email: 'Folor@demo.com',
                 password: 'ISExGoogle',
             });
             if (error) throw error;
@@ -55,7 +55,7 @@ export default function Login() {
     return (
         <div className="login-container">
             <div className="login-box">
-                <h1 className="login-title">SPOTLY</h1>
+                <img src="/logo.png" alt="Folor" className="login-logo" />
                 <p className="login-subtitle">Entdecke deine Welt.</p>
 
                 <form onSubmit={handleAuth} className="login-form">
