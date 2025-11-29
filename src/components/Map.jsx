@@ -303,7 +303,17 @@ export default function Map({ session }) {
 
       const boardEl = document.createElement('div');
       boardEl.className = 'board-marker';
-      boardEl.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>';
+      boardEl.innerHTML = `
+        <div class="board-icon-wrapper">
+          <div class="board-leaf"></div>
+          <div class="board-body">
+            <div class="board-content-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </div>
+          </div>
+          <div class="board-post"></div>
+        </div>
+      `;
       boardEl.onclick = (e) => {
         e.stopPropagation();
         setShowBoard(true);
