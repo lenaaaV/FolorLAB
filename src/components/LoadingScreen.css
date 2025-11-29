@@ -138,3 +138,21 @@
         transform: translateY(0);
     }
 }
+
+.loading-progress-container {
+    width: 200px;
+    height: 6px;
+    background-color: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out 1.4s forwards;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3a4a3a, #9ab09a);
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+}
