@@ -13,6 +13,8 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
     const [mediaFile, setMediaFile] = useState(null);
     const [mediaPreview, setMediaPreview] = useState(null);
     const [mediaType, setMediaType] = useState('text'); // 'text', 'image', 'audio'
+    const [replyingTo, setReplyingTo] = useState(null); // ID of post being replied to
+    const [replyText, setReplyText] = useState("");
     const fileInputRef = useRef(null);
 
     // Fetch posts from Supabase
@@ -23,51 +25,105 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
     const fetchPosts = async () => {
         setLoading(true);
         try {
-            let query = supabase
-                .from('posts')
-                .select('*')
-                .eq('location_name', locationName)
-                .order('created_at', { ascending: false });
+            let formattedPosts = [];
 
-            if (activeTab === 'community') {
-                query = query.eq('visibility', 'public');
-            } else if (activeTab === 'mine') {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    query = query.eq('user_id', user.id);
+            // Hardcoded cleanup for TU Darmstadt
+            if (locationName === "TU Darmstadt") {
+                formattedPosts = [
+                    {
+                        id: 'mock-1',
+                        author: 'Tawsirul',
+                        time: '10:00',
+                        content: 'Das beste an der Uni, ist das Google Seminar. Ich habe da so vieles lernen können',
+                        type: 'text',
+                        avatar: '🎓',
+                        replies: []
+                    },
+                    {
+                        id: 'mock-2',
+                        author: 'Ali',
+                        time: '11:30',
+                        content: 'in der ULB im 3.Stock EWF lernen, wer ist dabei?',
+                        type: 'text',
+                        avatar: '📚',
+                        replies: [
+                            {
+                                id: 'mock-reply-1',
+                                author: 'Emanuel',
+                                time: '11:35',
+                                content: 'bin dabei',
+                                type: 'text',
+                                avatar: '👋'
+                            }
+                        ]
+                    },
+                    {
+                        id: 'mock-3',
+                        author: 'Lena',
+                        time: '12:15',
+                        content: '',
+                        type: 'image',
+                        image: '/lena_post.jpg',
+                        avatar: '📸',
+                        replies: []
+                    },
+                    {
+                        id: 'mock-4',
+                        author: 'Frederik',
+                        time: '13:00',
+                        content: 'Alexander Benlian bester Prof',
+                        type: 'text',
+                        avatar: '👨‍🏫',
+                        replies: []
+                    }
+                ];
+            } else {
+                let query = supabase
+                    .from('posts')
+                    .select('*')
+                    .eq('location_name', locationName)
+                    .order('created_at', { ascending: false });
+
+                if (activeTab === 'community') {
+                    query = query.eq('visibility', 'public');
+                } else if (activeTab === 'mine') {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        query = query.eq('user_id', user.id);
+                    }
+                } else if (activeTab === 'friends') {
+                    query = query.eq('visibility', 'friends');
                 }
-            } else if (activeTab === 'friends') {
-                // For now, only show posts explicitly marked as 'friends' visibility
-                // In a real app, this would filter by user_id IN (friend_ids)
-                query = query.eq('visibility', 'friends');
-            }
 
-            const { data, error } = await query;
+                const { data, error } = await query;
 
-            if (error) throw error;
+                if (error) throw error;
 
-            // Transform data for UI
-            const formattedPosts = data.map(post => ({
-                id: post.id,
-                author: post.author_name || 'Anonym',
-                time: new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                content: post.content,
-                type: post.media_type || 'text',
-                image: post.media_type === 'image' ? post.media_url : null,
-                video: post.media_type === 'video' ? post.media_url : null,
-                avatar: "👤" // Placeholder
-            }));
+                // Transform data for UI
+                formattedPosts = data.map(post => ({
+                    id: post.id,
+                    author: post.author_name || 'Anonym',
+                    time: new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    content: post.content,
+                    type: post.media_type || 'text',
+                    image: post.media_type === 'image' ? post.media_url : null,
+                    video: post.media_type === 'video' ? post.media_url : null,
+                    avatar: "👤", // Placeholder
+                    replies: [] // Initialize empty replies
+                }));
 
-            if (locationName === "ISE x Google") {
-                formattedPosts.unshift({
-                    id: 'mock-ise-1',
-                    author: 'Student',
-                    time: '12:00',
-                    content: 'Bester Lehrstuhl! Ria und Leon sind die coolsten Betreuer 🚀',
-                    type: 'text',
-                    image: null,
-                    avatar: "🎓"
-                });
+                if (locationName === "ISE x Google") {
+                    formattedPosts.unshift({
+                        id: 'mock-ise-1',
+                        author: 'Student',
+                        time: '12:00',
+                        content: 'Bester Lehrstuhl! Ria und Leon sind die coolsten Betreuer 🚀',
+                        type: 'text',
+                        image: null,
+                        avatar: "🎓",
+                        replies: []
+                    });
+                }
             }
 
             setPosts(formattedPosts);
@@ -98,6 +154,28 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
 
         setUploading(true);
         try {
+            // For demo purposes, if we are in TU Darmstadt, just add to local state
+            if (locationName === "TU Darmstadt") {
+                const newPost = {
+                    id: `local-${Date.now()}`,
+                    author: 'Du',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    content: newPostText,
+                    type: mediaType,
+                    image: mediaType === 'image' ? mediaPreview : null,
+                    video: mediaType === 'video' ? mediaPreview : null,
+                    avatar: "👤",
+                    replies: []
+                };
+                setPosts([newPost, ...posts]);
+                setNewPostText("");
+                setMediaFile(null);
+                setMediaPreview(null);
+                setShowNewMoment(false);
+                setUploading(false);
+                return;
+            }
+
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Not authenticated");
 
@@ -153,6 +231,30 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleReplySubmit = (postId) => {
+        if (!replyText.trim()) return;
+
+        const newReply = {
+            id: `reply-${Date.now()}`,
+            author: 'Du',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            content: replyText,
+            type: 'text',
+            avatar: "👤"
+        };
+
+        const updatedPosts = posts.map(post => {
+            if (post.id === postId) {
+                return { ...post, replies: [...(post.replies || []), newReply] };
+            }
+            return post;
+        });
+
+        setPosts(updatedPosts);
+        setReplyingTo(null);
+        setReplyText("");
     };
 
     return (
@@ -230,6 +332,53 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
 
                                         {post.type === 'video' && post.video && (
                                             <video src={post.video} controls className="moment-video" />
+                                        )}
+
+                                        {/* Replies */}
+                                        {post.replies && post.replies.length > 0 && (
+                                            <div className="replies-container">
+                                                {post.replies.map(reply => (
+                                                    <div key={reply.id} className="reply-card">
+                                                        <div className="reply-header">
+                                                            <span className="reply-author">{reply.author}</span>
+                                                            <span className="reply-time">{reply.time}</span>
+                                                        </div>
+                                                        <p className="reply-text">{reply.content}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Reply Action */}
+                                        <div className="card-actions">
+                                            <button
+                                                className="action-btn reply-btn"
+                                                onClick={() => setReplyingTo(replyingTo === post.id ? null : post.id)}
+                                            >
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                                Antworten
+                                            </button>
+                                        </div>
+
+                                        {/* Reply Input */}
+                                        {replyingTo === post.id && (
+                                            <div className="reply-input-container">
+                                                <input
+                                                    type="text"
+                                                    className="reply-input"
+                                                    placeholder="Schreibe eine Antwort..."
+                                                    value={replyText}
+                                                    onChange={(e) => setReplyText(e.target.value)}
+                                                    autoFocus
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleReplySubmit(post.id)}
+                                                />
+                                                <button
+                                                    className="send-reply-btn"
+                                                    onClick={() => handleReplySubmit(post.id)}
+                                                >
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 ))
