@@ -627,21 +627,18 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
   };
 
   const nextOnboardingStep = () => {
-    if (onboardingStep < 6) {
+    if (onboardingStep < 5) { // Changed from 6 to 5
       setOnboardingStep(prev => prev + 1);
     } else {
       setOnboardingStep(0); // Finish
-
       // Fly back to user location
-      if (userMarker.current && map.current) {
+      if (userMarker.current && map.current) { // Added map.current check
         const pos = userMarker.current.getLngLat();
         map.current.flyTo({
           center: pos,
-          zoom: 16,
-          duration: 1500,
-          essential: true
+          zoom: 15, // Changed from 16 to 15, removed duration and essential
         });
-        setIsFollowing(true);
+        setIsFollowing(true); // Kept this line
       }
     }
   };
@@ -657,7 +654,7 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
         <div className="info-modal-overlay">
           <div className="info-modal">
             <div className="info-scroll-content">
-              <h2>Willkommen bei Spotly</h2>
+              <h2>Willkommen bei Folor</h2>
               <p className="info-intro">
                 Entdecke deine Umgebung neu. Der Nebel lichtet sich dort, wo du bist – und die Welt wird bunt.
               </p>
@@ -884,7 +881,7 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
 
             {onboardingStep === 4 && (
               <div className="onboarding-card">
-                <h2>Suche nach Memory Boards.</h2>
+                <h2>Entdecke und Poste in MemoryBoards.</h2>
                 <div className="onboarding-actions">
                   <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
                   <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
@@ -893,16 +890,6 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
             )}
 
             {onboardingStep === 5 && (
-              <div className="onboarding-card">
-                <h2>Entdecke & Poste.</h2>
-                <div className="onboarding-actions">
-                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
-                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
-                </div>
-              </div>
-            )}
-
-            {onboardingStep === 6 && (
               <div className="onboarding-card">
                 <h2>Nur vor Ort sichtbar.</h2>
                 <button className="onboarding-btn" onClick={nextOnboardingStep}>Alles klar!</button>
