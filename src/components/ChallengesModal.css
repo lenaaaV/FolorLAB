@@ -28,11 +28,11 @@
 
 .challenges-header {
     padding: 24px 28px;
-    background: linear-gradient(135deg, #FFDAC1 0%, #FFB7B2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #5d4037;
+    color: #2E4033;
     border-bottom: 2px solid rgba(255, 255, 255, 0.5);
 }
 
@@ -41,7 +41,7 @@
     font-size: 1.8rem;
     font-weight: 800;
     letter-spacing: -0.5px;
-    color: #5d4037;
+    color: #2E4033;
     text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.3);
 }
 
@@ -53,7 +53,7 @@
     border-radius: 50%;
     font-size: 1.2rem;
     font-weight: 700;
-    color: #5d4037;
+    color: #2E4033;
     cursor: pointer;
     display: flex;
     justify-content: center;
@@ -80,7 +80,7 @@
 .challenges-section h3 {
     margin: 0 0 16px 8px;
     font-size: 1.1rem;
-    color: #8d6e63;
+    color: #4A6650;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     font-weight: 700;
@@ -94,7 +94,7 @@
     display: block;
     width: 6px;
     height: 6px;
-    background: #ffab91;
+    background: var(--primary-dark);
     border-radius: 50%;
 }
 
@@ -124,24 +124,24 @@
 
 /* Daily Challenges Style */
 .challenge-card.daily {
-    border-color: #e0f7fa;
-    background: linear-gradient(to bottom right, #ffffff, #f1f8e9);
+    border-color: var(--primary-light);
+    background: linear-gradient(to bottom right, #ffffff, #F1F8E9);
 }
 
 .challenge-card.daily .challenge-icon {
-    background: #e0f7fa;
-    color: #006064;
+    background: var(--primary-light);
+    color: #2E7D32;
 }
 
 /* Weekly Challenges Style */
 .challenge-card.weekly {
-    border-color: #f3e5f5;
-    background: linear-gradient(to bottom right, #ffffff, #fff3e0);
+    border-color: var(--primary-color);
+    background: linear-gradient(to bottom right, #ffffff, #E8F5E9);
 }
 
 .challenge-card.weekly .challenge-icon {
-    background: #f3e5f5;
-    color: #4a148c;
+    background: var(--primary-color);
+    color: #1B5E20;
 }
 
 .challenge-card.completed {
@@ -194,12 +194,12 @@
 .challenge-xp-badge {
     font-size: 0.75rem;
     font-weight: 800;
-    color: #ff6f00;
-    background: #fff8e1;
+    color: #1B5E20;
+    background: #C8E6C9;
     padding: 4px 10px;
     border-radius: 12px;
     white-space: nowrap;
-    box-shadow: 0 2px 0 #ffe0b2;
+    box-shadow: 0 2px 0 #A5D6A7;
 }
 
 .challenge-description {
@@ -220,7 +220,7 @@
 
 .challenge-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #ffcc80, #ffab91);
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
     border-radius: 5px;
     transition: width 0.5s ease-out;
 }
