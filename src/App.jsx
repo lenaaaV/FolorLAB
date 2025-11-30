@@ -10,6 +10,7 @@ import './App.css';
 function App() {
   const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState('map');
+  const [appLoaded, setAppLoaded] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,7 +33,7 @@ function App() {
   return (
     <div className="App">
       <div className="content-area">
-        {activeTab === 'map' && <Map session={session} />}
+        {activeTab === 'map' && <Map session={session} appLoaded={appLoaded} setAppLoaded={setAppLoaded} />}
 
         {activeTab === 'collection' && <Collection session={session} />}
 
