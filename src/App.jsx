@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Navbar from './components/Navbar';
 import Profile from './components/Profile';
 import Collection from './components/Collection';
+import Leaderboard from './components/Leaderboard';
 import './App.css';
 
 function App() {
@@ -44,6 +45,8 @@ function App() {
         {activeTab === 'map' && <Map session={session} appLoaded={appLoaded} setAppLoaded={setAppLoaded} />}
 
         {activeTab === 'collection' && <Collection session={session} />}
+
+        {activeTab === 'leaderboard' && <Leaderboard session={session} />}
 
         {activeTab === 'profile' && <Profile session={session} />}
       </div>
