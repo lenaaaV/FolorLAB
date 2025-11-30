@@ -657,33 +657,33 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
         <div className="info-modal-overlay">
           <div className="info-modal">
             <div className="info-scroll-content">
-              <h2>Willkommen bei Folor</h2>
+              <h2>Willkommen bei Spotly</h2>
               <p className="info-intro">
-                Erkunde deine Umgebung und entdecke verborgene Orte. Der Nebel lichtet sich genau dort, wo du dich befindest – und die Welt um dich herum wird lebendig.
+                Entdecke deine Umgebung neu. Der Nebel lichtet sich dort, wo du bist – und die Welt wird bunt.
               </p>
 
               <div className="info-steps">
                 <div className="info-step">
                   <span className="step-number">1</span>
                   <div className="step-content">
-                    <h2>Bewege dich durch die Karte</h2>
-                    <p>Alles beginnt dunkel. Sobald du dich an einem Ort befindest, wird dieser farbig sichtbar – du „enthüllst“ die Welt Schritt für Schritt.</p>
+                    <h2>Bewege dich</h2>
+                    <p>Alles beginnt dunkel. Laufe los, um die Karte Schritt für Schritt freizuschalten.</p>
                   </div>
                 </div>
 
                 <div className="info-step">
                   <span className="step-number">2</span>
                   <div className="step-content">
-                    <h2>Entdecke Memory Boards</h2>
-                    <p>An jedem freigeschalteten Ort findest du ein Memory Board mit Audio, Fotos, Videos und Texten. Hier erzählen Menschen ihre Geschichten.</p>
+                    <h2>Finde Memory Boards</h2>
+                    <p>An besonderen Orten warten Memory Boards mit Fotos, Videos und Geschichten auf dich.</p>
                   </div>
                 </div>
 
                 <div className="info-step">
                   <span className="step-number">3</span>
                   <div className="step-content">
-                    <h2>Hinterlasse deine eigene Spur</h2>
-                    <p>Warst du schon einmal hier? Füge dein eigenes Memory hinzu und werde Teil der Geschichte des Ortes.</p>
+                    <h2>Hinterlasse Spuren</h2>
+                    <p>Warst du hier? Poste dein eigenes Memory und werde Teil des Ortes.</p>
                   </div>
                 </div>
 
@@ -691,7 +691,7 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
                   <span className="step-number">4</span>
                   <div className="step-content">
                     <h2>Sammle Spots</h2>
-                    <p>Je mehr Orte du entdeckst, desto größer wird deine persönliche, farbig leuchtende Karte.</p>
+                    <p>Je mehr du entdeckst, desto bunter wird deine Karte.</p>
                   </div>
 
 
@@ -700,16 +700,16 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
                 <div className="info-step">
                   <span className="step-number">5</span>
                   <div className="step-content">
-                    <h2>Wichtig: Standort & Browser</h2>
-                    <p>Bitte erlaube den Zugriff auf deinen Standort. Falls keine Karte angezeigt wird, versuche es bitte mit einem anderen Browser.</p>
+                    <h2>Standort & Browser</h2>
+                    <p>Bitte erlaube den Standortzugriff. Falls die Karte leer bleibt, nutze einen anderen Browser.</p>
                   </div>
                 </div>
 
                 <div className="info-step">
                   <span className="step-number">6</span>
                   <div className="step-content">
-                    <h2>Disclaimer</h2>
-                    <p>Du erlebst gerade den Anfang unserer Reise (Clickable MVP). Wir entwickeln Folor ständig weiter und neue Features sind bereits in Arbeit. Aktuell wartet das erste Memory Board in Darmstadt an der TU Uni darauf, von dir entdeckt zu werden.</p>
+                    <h2>Beta Version</h2>
+                    <p>Dies ist eine frühe Version. Wir entwickeln Spotly ständig weiter. Das erste Memory Board wartet an der TU Darmstadt auf dich!</p>
                   </div>
                 </div>
               </div>
@@ -717,7 +717,7 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
 
 
             <div className="info-footer">
-              <button className="info-close-btn" onClick={startOnboarding}>Verstanden</button>
+              <button className="info-close-btn" onClick={startOnboarding}>Los geht's!</button>
             </div>
           </div>
         </div>
@@ -854,43 +854,58 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
           <div className="onboarding-content">
             {onboardingStep === 1 && (
               <div className="onboarding-card">
-                <h2>Hier befindest du dich gerade.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                <h2>Hier bist du.</h2>
+                <div className="onboarding-actions">
+                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                </div>
               </div>
             )}
 
             {onboardingStep === 2 && (
               <div className="onboarding-card">
-                <h2>Deine Umgebung liegt im Nebel.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                <h2>Alles ist noch neblig.</h2>
+                <div className="onboarding-actions">
+                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                </div>
               </div>
             )}
 
             {onboardingStep === 3 && (
               <div className="onboarding-card">
-                <h2>Jeder Schritt färbt deine Welt.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                <h2>Lauf los, um Farben zu sehen.</h2>
+                <div className="onboarding-actions">
+                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                </div>
               </div>
             )}
 
             {onboardingStep === 4 && (
               <div className="onboarding-card">
-                <h2>Finde Memory Boards.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                <h2>Suche nach Memory Boards.</h2>
+                <div className="onboarding-actions">
+                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                </div>
               </div>
             )}
 
             {onboardingStep === 5 && (
               <div className="onboarding-card">
-                <h2>Entdecke mehr. Erschaffe Neues.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                <h2>Entdecke & Poste.</h2>
+                <div className="onboarding-actions">
+                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                </div>
               </div>
             )}
 
             {onboardingStep === 6 && (
               <div className="onboarding-card">
-                <h2>Exklusive Inhalte nur vor Ort.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Verstanden</button>
+                <h2>Nur vor Ort sichtbar.</h2>
+                <button className="onboarding-btn" onClick={nextOnboardingStep}>Alles klar!</button>
               </div>
             )}
           </div>

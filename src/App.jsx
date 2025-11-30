@@ -12,19 +12,27 @@ function App() {
   const [activeTab, setActiveTab] = useState('map');
   const [appLoaded, setAppLoaded] = useState(false);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setLoading(false);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  if (loading) {
+    return null; // Or a loading spinner
+  }
 
   if (!session) {
     return <Login />;
