@@ -1053,3 +1053,28 @@
   filter: brightness(0.2);
   /* Make icons dark */
 }
+
+.onboarding-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.onboarding-skip-btn {
+  background: transparent;
+  color: var(--text-light);
+  border: 2px solid #eee;
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.onboarding-skip-btn:hover {
+  border-color: #ddd;
+  color: var(--text-color);
+  background: #f9f9f9;
+}
