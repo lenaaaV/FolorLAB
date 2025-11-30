@@ -10,7 +10,7 @@ import { calculateLevel } from '../utils/levelLogic';
 import LevelIndicator from './LevelIndicator';
 import ChallengesModal from './ChallengesModal';
 
-export default function Map({ session }) {
+export default function Map({ session, appLoaded, setAppLoaded }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const userMarker = useRef(null);
@@ -19,11 +19,12 @@ export default function Map({ session }) {
   const [lat, setLat] = useState(null);
   const [zoom] = useState(15);
   const [visitedPoints, setVisitedPoints] = useState([]);
+  const visitedPointsRef = useRef([]); // Ref for performance optimization
   const [dbPointsLoaded, setDbPointsLoaded] = useState(false);
   const [hasLocation, setHasLocation] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [showLoading, setShowLoading] = useState(true);
+  const [showLoading, setShowLoading] = useState(!appLoaded);
   const [loadingText, setLoadingText] = useState("Satelliten werden poliert...");
   const [showInfo, setShowInfo] = useState(false);
   const [showChallenges, setShowChallenges] = useState(false);
@@ -129,7 +130,7 @@ export default function Map({ session }) {
     }
 
     // Draw visited points holes
-    visitedPoints.forEach(point => {
+    visitedPointsRef.current.forEach(point => {
       drawHole(point.lng, point.lat);
     });
   };
@@ -148,7 +149,7 @@ export default function Map({ session }) {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [visitedPoints, hasLocation]); // Re-bind when points change
+  }, [hasLocation]); // Removed visitedPoints dependency to prevent loop restart
 
   const handleRecenter = () => {
     setIsFollowing(true);
@@ -213,6 +214,8 @@ export default function Map({ session }) {
 
   // Loading screen logic
   useEffect(() => {
+    if (appLoaded) return;
+
     const startTime = Date.now();
     const duration = 5000; // 5 seconds
 
@@ -233,6 +236,7 @@ export default function Map({ session }) {
         if (hasLocation) {
           setTimeout(() => {
             setShowLoading(false);
+            setAppLoaded(true);
             setShowInfo(true); // Show info popup after loading
           }, 500);
         }
@@ -240,10 +244,12 @@ export default function Map({ session }) {
     }, 50);
 
     return () => clearInterval(interval);
-  }, [hasLocation]);
+  }, [hasLocation, appLoaded]);
 
   // Safety timeout: Force hide loading screen after 10 seconds if location fails
   useEffect(() => {
+    if (appLoaded) return;
+
     const safetyTimeout = setTimeout(() => {
       if (showLoading) {
         setShowLoading(false);
@@ -253,22 +259,24 @@ export default function Map({ session }) {
           setLat(52.52);
           setHasLocation(true);
         }
+        setAppLoaded(true);
         setShowInfo(true);
       }
     }, 10000);
 
     return () => clearTimeout(safetyTimeout);
-  }, [showLoading, hasLocation]);
+  }, [showLoading, hasLocation, appLoaded]);
 
   // Ensure loading screen hides when both timer is done and location is found
   useEffect(() => {
-    if (loadingProgress >= 100 && hasLocation) {
+    if (loadingProgress >= 100 && hasLocation && !appLoaded) {
       setTimeout(() => {
         setShowLoading(false);
+        setAppLoaded(true);
         setShowInfo(true); // Show info popup after loading
       }, 500);
     }
-  }, [hasLocation, loadingProgress]);
+  }, [hasLocation, loadingProgress, appLoaded]);
 
 
   // --- Map Initialization Logic ---
@@ -415,7 +423,9 @@ export default function Map({ session }) {
               const dist = Math.sqrt(Math.pow(lastPoint.lng - longitude, 2) + Math.pow(lastPoint.lat - latitude, 2));
               if (dist < 0.0001) return prev;
             }
-            return [...prev, { lng: longitude, lat: latitude }];
+            const newPoints = [...prev, { lng: longitude, lat: latitude }];
+            visitedPointsRef.current = newPoints; // Update ref
+            return newPoints;
           });
         },
         (error) => {
@@ -467,6 +477,7 @@ export default function Map({ session }) {
           console.error('Error fetching points:', error);
         } else if (data && data.visited_points) {
           setVisitedPoints(data.visited_points);
+          visitedPointsRef.current = data.visited_points; // Update ref
           setLevelData(calculateLevel(data.visited_points));
         }
         setDbPointsLoaded(true);
@@ -884,7 +895,8 @@ export default function Map({ session }) {
             )}
           </div>
         </div>
-      )}
+      )
+      }
     </div >
   );
 }
