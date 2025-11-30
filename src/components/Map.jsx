@@ -723,7 +723,9 @@ export default function Map({ session }) {
         />
       )}
 
-      <div ref={mapContainer} className="map" />
+      <div ref={mapContainer} className="map">
+        <canvas ref={canvasRef} className="fog-overlay" />
+      </div>
 
       {/* Top Bar Container */}
       <div className="map-top-bar">
@@ -809,8 +811,6 @@ export default function Map({ session }) {
       {showChallenges && (
         <ChallengesModal onClose={() => setShowChallenges(false)} />
       )}
-
-      <canvas ref={canvasRef} className="fog-overlay" />
 
       <div className="controls-container">
         <button className="info-trigger-btn" onClick={() => setShowInfo(true)}>
