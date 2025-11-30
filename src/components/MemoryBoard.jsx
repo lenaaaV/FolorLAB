@@ -57,6 +57,18 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
                 avatar: "👤" // Placeholder
             }));
 
+            if (locationName === "ISE x Google") {
+                formattedPosts.unshift({
+                    id: 'mock-ise-1',
+                    author: 'Student',
+                    time: '12:00',
+                    content: 'Bester Lehrstuhl! Ria und Leon sind die coolsten Betreuer 🚀',
+                    type: 'text',
+                    image: null,
+                    avatar: "🎓"
+                });
+            }
+
             setPosts(formattedPosts);
         } catch (error) {
             console.error('Error fetching posts:', error);
