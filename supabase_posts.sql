@@ -36,6 +36,10 @@ begin
   if not exists (select 1 from information_schema.columns where table_name = 'posts' and column_name = 'author_name') then
     alter table posts add column author_name text;
   end if;
+
+  if not exists (select 1 from information_schema.columns where table_name = 'posts' and column_name = 'parent_id') then
+    alter table posts add column parent_id uuid references posts(id);
+  end if;
 end $$;
 
 -- 3. Enable RLS on posts
