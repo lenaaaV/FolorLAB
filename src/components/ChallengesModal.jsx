@@ -16,16 +16,29 @@ export default function ChallengesModal({ onClose }) {
                         <h3>Tägliche Aufgaben</h3>
                         <div className="challenges-list">
                             {CHALLENGES.filter(c => c.type === 'daily').map(challenge => (
-                                <div key={challenge.id} className={`challenge-card ${challenge.completed ? 'completed' : ''}`}>
-                                    <div className="challenge-icon">
-                                        {challenge.completed ? '✅' : '🎯'}
+                                <div key={challenge.id} className={`challenge-card ${challenge.completed ? 'completed' : ''} ${challenge.type}`}>
+                                    <div className="challenge-icon-wrapper">
+                                        <div className="challenge-icon">
+                                            {challenge.completed ? '✅' : (challenge.icon || '🎯')}
+                                        </div>
                                     </div>
-                                    <div className="challenge-info">
-                                        <h4>{challenge.title}</h4>
-                                        <p>{challenge.description}</p>
-                                    </div>
-                                    <div className="challenge-xp">
-                                        +{challenge.xp} XP
+                                    <div className="challenge-content-wrapper">
+                                        <div className="challenge-header-row">
+                                            <h4>{challenge.title}</h4>
+                                            <span className="challenge-xp-badge">+{challenge.xp} XP</span>
+                                        </div>
+                                        <p className="challenge-description">{challenge.description}</p>
+                                        <div className="challenge-progress-container">
+                                            <div
+                                                className="challenge-progress-bar"
+                                                style={{ width: challenge.completed ? '100%' : `${(challenge.progress / challenge.target) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="challenge-meta">
+                                            <span className="challenge-progress-text">
+                                                {challenge.completed ? 'Erledigt!' : `${challenge.progress || 0} / ${challenge.target || 1}`}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -36,16 +49,29 @@ export default function ChallengesModal({ onClose }) {
                         <h3>Wöchentliche Ziele</h3>
                         <div className="challenges-list">
                             {CHALLENGES.filter(c => c.type === 'weekly').map(challenge => (
-                                <div key={challenge.id} className={`challenge-card ${challenge.completed ? 'completed' : ''}`}>
-                                    <div className="challenge-icon">
-                                        {challenge.completed ? '🏆' : '📅'}
+                                <div key={challenge.id} className={`challenge-card ${challenge.completed ? 'completed' : ''} ${challenge.type}`}>
+                                    <div className="challenge-icon-wrapper">
+                                        <div className="challenge-icon">
+                                            {challenge.completed ? '🏆' : (challenge.icon || '📅')}
+                                        </div>
                                     </div>
-                                    <div className="challenge-info">
-                                        <h4>{challenge.title}</h4>
-                                        <p>{challenge.description}</p>
-                                    </div>
-                                    <div className="challenge-xp">
-                                        +{challenge.xp} XP
+                                    <div className="challenge-content-wrapper">
+                                        <div className="challenge-header-row">
+                                            <h4>{challenge.title}</h4>
+                                            <span className="challenge-xp-badge">+{challenge.xp} XP</span>
+                                        </div>
+                                        <p className="challenge-description">{challenge.description}</p>
+                                        <div className="challenge-progress-container">
+                                            <div
+                                                className="challenge-progress-bar"
+                                                style={{ width: challenge.completed ? '100%' : `${(challenge.progress / challenge.target) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="challenge-meta">
+                                            <span className="challenge-progress-text">
+                                                {challenge.completed ? 'Geschafft!' : `${challenge.progress || 0} / ${challenge.target || 1}`}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
