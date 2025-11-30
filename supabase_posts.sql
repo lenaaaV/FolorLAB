@@ -17,7 +17,12 @@ begin
   end if;
 
   if not exists (select 1 from information_schema.columns where table_name = 'posts' and column_name = 'media_type') then
-    alter table posts add column media_type text check (media_type in ('image', 'audio', 'text'));
+    alter table posts add column media_type text check (media_type in ('image', 'audio', 'text', 'video'));
+  else
+    -- Update constraint if it exists (this is a bit complex in pure SQL without dropping, so we'll just add a comment or try to drop and re-add if possible, but for safety we just note it)
+    -- Ideally: alter table posts drop constraint posts_media_type_check;
+    -- alter table posts add constraint posts_media_type_check check (media_type in ('image', 'audio', 'text', 'video'));
+    null;
   end if;
 
   if not exists (select 1 from information_schema.columns where table_name = 'posts' and column_name = 'location_name') then

@@ -54,6 +54,7 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
                 content: post.content,
                 type: post.media_type || 'text',
                 image: post.media_type === 'image' ? post.media_url : null,
+                video: post.media_type === 'video' ? post.media_url : null,
                 avatar: "👤" // Placeholder
             }));
 
@@ -81,7 +82,13 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
         const file = e.target.files[0];
         if (file) {
             setMediaFile(file);
-            setMediaType(file.type.startsWith('image/') ? 'image' : 'audio');
+            if (file.type.startsWith('image/')) {
+                setMediaType('image');
+            } else if (file.type.startsWith('video/')) {
+                setMediaType('video');
+            } else {
+                setMediaType('audio');
+            }
             setMediaPreview(URL.createObjectURL(file));
         }
     };
@@ -220,6 +227,10 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
                                         {post.type === 'image' && post.image && (
                                             <img src={post.image} alt="Moment" className="moment-image" />
                                         )}
+
+                                        {post.type === 'video' && post.video && (
+                                            <video src={post.video} controls className="moment-video" />
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -259,7 +270,11 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
 
                             {mediaPreview && (
                                 <div className="media-preview">
-                                    <img src={mediaPreview} alt="Preview" />
+                                    {mediaType === 'video' ? (
+                                        <video src={mediaPreview} controls className="preview-video" />
+                                    ) : (
+                                        <img src={mediaPreview} alt="Preview" />
+                                    )}
                                     <button onClick={() => {
                                         setMediaFile(null);
                                         setMediaPreview(null);
@@ -296,12 +311,12 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
                                     type="file"
                                     ref={fileInputRef}
                                     style={{ display: 'none' }}
-                                    accept="image/*"
+                                    accept="image/*,video/*"
                                     onChange={handleFileSelect}
                                 />
                                 <button className="media-btn" onClick={() => fileInputRef.current.click()}>
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                                    <span>Foto</span>
+                                    <span>Foto/Video</span>
                                 </button>
                                 <button className="media-btn">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
