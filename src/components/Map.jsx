@@ -217,7 +217,7 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
     if (appLoaded) return;
 
     const startTime = Date.now();
-    const duration = 5000; // 5 seconds
+    const duration = 3000; // 3 seconds
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -290,8 +290,14 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
         container: mapContainer.current,
         style: `https://api.maptiler.com/maps/019ab162-cdfb-71a2-ac7c-5b04b94ab23f/style.json?key=4SKAZ4ymtxurSp8vqiLa`,
         center: [longitude, latitude],
-        zoom: zoom
+        zoom: zoom,
+        attributionControl: false // Disable default attribution to move it
       });
+
+      // Add attribution to bottom-right
+      map.current.addControl(new maplibregl.AttributionControl({
+        compact: false
+      }), 'bottom-right');
 
       map.current.on('load', () => {
         console.log("Map loaded successfully");
