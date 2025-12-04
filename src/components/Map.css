@@ -1078,3 +1078,10 @@
   color: var(--text-color);
   background: #f9f9f9;
 }
+
+/* Lift attribution above navbar */
+.maplibregl-ctrl-bottom-right {
+  bottom: 95px !important;
+  right: 10px !important;
+  z-index: 50 !important;
+}
