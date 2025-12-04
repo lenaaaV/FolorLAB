@@ -71,7 +71,7 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
                         id: 'mock-4',
                         author: 'Frederik',
                         time: '13:00',
-                        content: 'Alexander Benlian bester Prof',
+                        content: 'Prof. Dr. Benlian ist der beste Professor, den ich je gehört habe! 🚀',
                         type: 'text',
                         avatar: '👨‍🏫',
                         replies: []
