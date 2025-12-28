@@ -27,104 +27,39 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
         try {
             let formattedPosts = [];
 
-            // Hardcoded cleanup for TU Darmstadt
-            if (locationName === "TU Darmstadt") {
-                formattedPosts = [
-                    {
-                        id: 'mock-1',
-                        author: 'Tawsirul',
-                        time: '10:00',
-                        content: 'Das beste an der Uni, ist das Google Seminar. Ich habe da so vieles lernen können',
-                        type: 'text',
-                        avatar: '🎓',
-                        replies: []
-                    },
-                    {
-                        id: 'mock-2',
-                        author: 'Ali',
-                        time: '11:30',
-                        content: 'in der ULB im 3.Stock EWF lernen, wer ist dabei?',
-                        type: 'text',
-                        avatar: '📚',
-                        replies: [
-                            {
-                                id: 'mock-reply-1',
-                                author: 'Emanuel',
-                                time: '11:35',
-                                content: 'bin dabei',
-                                type: 'text',
-                                avatar: '👋'
-                            }
-                        ]
-                    },
-                    {
-                        id: 'mock-3',
-                        author: 'Lena',
-                        time: '12:15',
-                        content: '',
-                        type: 'image',
-                        image: '/lena_post.jpg',
-                        avatar: '📸',
-                        replies: []
-                    },
-                    {
-                        id: 'mock-4',
-                        author: 'Frederik',
-                        time: '13:00',
-                        content: 'Prof. Dr. Benlian ist der beste Professor, den ich je gehört habe! 🚀',
-                        type: 'text',
-                        avatar: '👨‍🏫',
-                        replies: []
-                    }
-                ];
-            } else {
-                let query = supabase
-                    .from('posts')
-                    .select('*')
-                    .eq('location_name', locationName)
-                    .order('created_at', { ascending: false });
+            let query = supabase
+                .from('posts')
+                .select('*')
+                .eq('location_name', locationName)
+                .order('created_at', { ascending: false });
 
-                if (activeTab === 'community') {
-                    query = query.eq('visibility', 'public');
-                } else if (activeTab === 'mine') {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (user) {
-                        query = query.eq('user_id', user.id);
-                    }
-                } else if (activeTab === 'friends') {
-                    query = query.eq('visibility', 'friends');
+            if (activeTab === 'community') {
+                query = query.eq('visibility', 'public');
+            } else if (activeTab === 'mine') {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    query = query.eq('user_id', user.id);
                 }
-
-                const { data, error } = await query;
-
-                if (error) throw error;
-
-                // Transform data for UI
-                formattedPosts = data.map(post => ({
-                    id: post.id,
-                    author: post.author_name || 'Anonym',
-                    time: new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    content: post.content,
-                    type: post.media_type || 'text',
-                    image: post.media_type === 'image' ? post.media_url : null,
-                    video: post.media_type === 'video' ? post.media_url : null,
-                    avatar: "👤", // Placeholder
-                    replies: [] // Initialize empty replies
-                }));
-
-                if (locationName === "ISE x Google") {
-                    formattedPosts.unshift({
-                        id: 'mock-ise-1',
-                        author: 'Student',
-                        time: '12:00',
-                        content: 'Bester Lehrstuhl! Ria und Leon sind die coolsten Betreuer 🚀',
-                        type: 'text',
-                        image: null,
-                        avatar: "🎓",
-                        replies: []
-                    });
-                }
+            } else if (activeTab === 'friends') {
+                query = query.eq('visibility', 'friends');
             }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+
+            // Transform data for UI
+            formattedPosts = data.map(post => ({
+                id: post.id,
+                author: post.author_name || 'Anonym',
+                time: new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                content: post.content,
+                type: post.media_type || 'text',
+                image: post.media_type === 'image' ? post.media_url : null,
+                video: post.media_type === 'video' ? post.media_url : null,
+                avatar: "👤", // Placeholder
+                replies: [] // Initialize empty replies
+            }));
 
             setPosts(formattedPosts);
         } catch (error) {
@@ -154,27 +89,7 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
 
         setUploading(true);
         try {
-            // For demo purposes, if we are in TU Darmstadt, just add to local state
-            if (locationName === "TU Darmstadt") {
-                const newPost = {
-                    id: `local-${Date.now()}`,
-                    author: 'Du',
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    content: newPostText,
-                    type: mediaType,
-                    image: mediaType === 'image' ? mediaPreview : null,
-                    video: mediaType === 'video' ? mediaPreview : null,
-                    avatar: "👤",
-                    replies: []
-                };
-                setPosts([newPost, ...posts]);
-                setNewPostText("");
-                setMediaFile(null);
-                setMediaPreview(null);
-                setShowNewMoment(false);
-                setUploading(false);
-                return;
-            }
+
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("Not authenticated");

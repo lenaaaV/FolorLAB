@@ -8,7 +8,11 @@ import LoadingScreen from './LoadingScreen';
 import { supabase } from '../supabaseClient';
 import { calculateLevel } from '../utils/levelLogic';
 import LevelIndicator from './LevelIndicator';
+
 import ChallengesModal from './ChallengesModal';
+import { MEMORY_BOARD_LOCATIONS } from '../constants';
+import { fetchPlacesInBounds } from '../utils/overpass';
+import { generateBoardsForPlace } from '../utils/boardGenerator';
 
 export default function Map({ session, appLoaded, setAppLoaded }) {
   const mapContainer = useRef(null);
@@ -44,11 +48,13 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
 
   // Memory Board State
   const [showBoard, setShowBoard] = useState(null);
+  const [generatedBoards, setGeneratedBoards] = useState([]);
+  const [processedPlaceIds, setProcessedPlaceIds] = useState(new Set());
 
   const API_KEY = 'bkYozeqRKy60GSaYe5j9';
   const FOG_RADIUS_METERS = 200;
-  const TU_DARMSTADT = [8.6512, 49.8728];
-  const ISE_GOOGLE_LOC = [8.65763, 49.87653];
+  const TU_DARMSTADT = [8.6512, 49.8728]; // Keep for onboarding fallback if needed
+
 
   const loadingMessages = [
     "Satelliten werden poliert...",
@@ -316,6 +322,37 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
       map.current.on('touchstart', stopFollowing);
       map.current.on('wheel', stopFollowing);
 
+      // Dynamic Board Generation on Move - REMOVED per user request (Darmstadt & Frankfurt only)
+      /*
+      map.current.on('moveend', async () => {
+        if (!map.current) return;
+
+        const bounds = map.current.getBounds();
+        const zoom = map.current.getZoom();
+
+        // Only fetch if zoomed in enough to avoid fetching whole country
+        if (zoom > 10) {
+          const { places, pois } = await fetchPlacesInBounds(bounds);
+
+          const newBoards = [];
+          const newProcessedIds = new Set(processedPlaceIds);
+
+          places.forEach(place => {
+            if (!newProcessedIds.has(place.id)) {
+              const boards = generateBoardsForPlace(place, pois);
+              newBoards.push(...boards);
+              newProcessedIds.add(place.id);
+            }
+          });
+
+          if (newBoards.length > 0) {
+            setGeneratedBoards(prev => [...prev, ...newBoards]);
+            setProcessedPlaceIds(newProcessedIds);
+          }
+        }
+      });
+      */
+
       // User Marker
       const el = document.createElement('div');
       el.className = 'user-marker';
@@ -323,72 +360,89 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
         .setLngLat([longitude, latitude])
         .addTo(map.current);
 
-      // Memory Board Marker (TU Darmstadt)
-      const boardContainer = document.createElement('div');
-      boardContainer.className = 'board-marker-container';
+      // Dynamic Memory Board Markers
+      MEMORY_BOARD_LOCATIONS.forEach(location => {
+        const container = document.createElement('div');
+        container.className = 'board-marker-container';
 
-      const boardEl = document.createElement('div');
-      boardEl.className = 'board-marker';
-      boardEl.innerHTML = `
-        <div class="board-icon-wrapper">
-          <div class="board-leaf"></div>
-          <div class="board-body">
-            <div class="board-content-icon">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        const el = document.createElement('div');
+        el.className = 'board-marker';
+
+        // Custom style for ISE x Google to keep it blue
+        const leafStyle = location.name === 'ISE x Google' ? 'background: #4285F4;' : '';
+
+        el.innerHTML = `
+          <div class="board-icon-wrapper">
+            <div class="board-leaf" style="${leafStyle}"></div>
+            <div class="board-body">
+              <div class="board-content-icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </div>
             </div>
+            <div class="board-post"></div>
           </div>
-          <div class="board-post"></div>
-        </div>
-      `;
-      boardEl.onclick = (e) => {
-        e.stopPropagation();
-        setShowBoard({
-          name: "TU Darmstadt",
-          image: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1000"
-        });
-      };
+        `;
 
-      boardContainer.appendChild(boardEl);
+        el.onclick = (e) => {
+          e.stopPropagation();
+          setShowBoard({
+            name: location.name,
+            image: location.image
+          });
+        };
 
-      new maplibregl.Marker({ element: boardContainer })
-        .setLngLat(TU_DARMSTADT)
-        .addTo(map.current);
+        container.appendChild(el);
 
-      // ISE x Google Marker
-      const iseContainer = document.createElement('div');
-      iseContainer.className = 'board-marker-container';
-
-      const iseEl = document.createElement('div');
-      iseEl.className = 'board-marker';
-      iseEl.innerHTML = `
-        <div class="board-icon-wrapper">
-          <div class="board-leaf" style="background: #4285F4;"></div>
-          <div class="board-body">
-            <div class="board-content-icon">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            </div>
-          </div>
-          <div class="board-post"></div>
-        </div>
-      `;
-      iseEl.onclick = (e) => {
-        e.stopPropagation();
-        setShowBoard({
-          name: "ISE x Google",
-          image: "/ise_google.png"
-        });
-      };
-
-      iseContainer.appendChild(iseEl);
-
-      new maplibregl.Marker({ element: iseContainer })
-        .setLngLat(ISE_GOOGLE_LOC)
-        .addTo(map.current);
-
+        new maplibregl.Marker({ element: container })
+          .setLngLat(location.coordinates)
+          .addTo(map.current);
+      });
     } catch (error) {
       console.error("Error initializing map:", error);
     }
   };
+
+  // Render generated boards
+  useEffect(() => {
+    if (!map.current || generatedBoards.length === 0) return;
+
+    generatedBoards.forEach(board => {
+      // Check if marker already exists to avoid duplicates (though state check helps)
+      // For now, simple add. In production, we'd track marker instances to remove them if needed.
+
+      const container = document.createElement('div');
+      container.className = 'board-marker-container';
+
+      const el = document.createElement('div');
+      el.className = 'board-marker';
+
+      el.innerHTML = `
+          <div class="board-icon-wrapper">
+            <div class="board-leaf" style="background: #a29bfe;"></div>
+            <div class="board-body">
+              <div class="board-content-icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+            </div>
+            <div class="board-post"></div>
+          </div>
+        `;
+
+      el.onclick = (e) => {
+        e.stopPropagation();
+        setShowBoard({
+          name: board.name,
+          image: board.image
+        });
+      };
+
+      container.appendChild(el);
+
+      new maplibregl.Marker({ element: container })
+        .setLngLat(board.coordinates)
+        .addTo(map.current);
+    });
+  }, [generatedBoards]);
 
   useEffect(() => {
     // 1. Try Geolocation
