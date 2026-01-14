@@ -1,0 +1,205 @@
+.profiling-screen-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: var(--bg-color);
+    padding: 20px;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+.profiling-box {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 480px;
+    padding: 50px 40px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.profiling-title {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    font-size: 1.5rem;
+    color: #2c3e50;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.profiling-question {
+    margin-bottom: 2.5rem;
+}
+
+.question-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+/* Mood Slider */
+.mood-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 0 5px;
+}
+
+.mood-range {
+    flex-grow: 1;
+    cursor: pointer;
+    accent-color: var(--primary-dark);
+    height: 4px;
+    /* Thinner for elegance */
+    border-radius: 2px;
+    background: #eee;
+    border: none;
+}
+
+/* Custom Thumb */
+.mood-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 2px solid var(--primary-dark);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    margin-top: -8px;
+    /* Alignment for non-standard bars */
+}
+
+/* Firefox Thumb */
+.mood-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border: 2px solid var(--primary-dark);
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+
+.mood-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-weight: 500;
+    width: 70px;
+}
+
+.mood-value-display {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 10px;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+/* Gaming Options */
+.gaming-options {
+    display: flex;
+    gap: 12px;
+}
+
+.gaming-option-btn {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    background: #fafafa;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s ease;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.gaming-option-btn:hover {
+    background: #f0f0f0;
+    border-color: #d0d0d0;
+}
+
+.gaming-option-btn.selected {
+    background: var(--primary-light);
+    /* Soft Tea Green Light */
+    color: #2c3e50;
+    border-color: var(--primary-dark);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(169, 208, 182, 0.2);
+}
+
+/* Tester Input */
+.tester-id-input {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    border-radius: var(--radius-sm);
+    margin-top: 5px;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.2s;
+    color: #333;
+}
+
+.tester-id-input:focus {
+    outline: none;
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.tester-id-input::placeholder {
+    color: #ccc;
+}
+
+/* Submit & Error */
+.error-message {
+    background-color: #fff5f5;
+    color: #c0392b;
+    border: 1px solid #ffcccc;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.submit-profiling-btn {
+    width: 100%;
+    background: var(--primary-dark);
+    color: white;
+    padding: 16px;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(169, 208, 182, 0.4);
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 0.5px;
+}
+
+.submit-profiling-btn:hover {
+    transform: translateY(-2px);
+    background-color: #8fb99d;
+    box-shadow: 0 6px 16px rgba(169, 208, 182, 0.5);
+}
+
+.submit-profiling-btn:disabled {
+    background: #e0e0e0;
+    color: #a0a0a0;
+    box-shadow: none;
+    cursor: default;
+    transform: none;
+}

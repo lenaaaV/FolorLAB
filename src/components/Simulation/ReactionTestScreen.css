@@ -1,0 +1,117 @@
+.reaction-intro {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: var(--bg-color);
+    font-family: 'Outfit', sans-serif;
+}
+
+.reaction-box {
+    background: var(--card-bg);
+    padding: 60px 40px;
+    max-width: 480px;
+    text-align: center;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.reaction-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    letter-spacing: -0.02em;
+}
+
+.reaction-text {
+    color: var(--text-color);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    font-size: 1.05rem;
+}
+
+.reaction-start-btn {
+    background: var(--primary-dark);
+    color: white;
+    padding: 16px 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 12px rgba(169, 208, 182, 0.4);
+}
+
+.reaction-start-btn:hover {
+    transform: translateY(-2px);
+    background-color: #8fb99d;
+    box-shadow: 0 6px 16px rgba(169, 208, 182, 0.5);
+}
+
+/* Active Test Area */
+.reaction-area {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--primary-light);
+    /* Very subtle green tint background for focus */
+    cursor: crosshair;
+    overflow: hidden;
+    user-select: none;
+}
+
+.reaction-counter {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    color: #2c3e50;
+    background: white;
+    padding: 8px 24px;
+    border-radius: 50px;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.reaction-dot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background-color: var(--accent-color);
+    /* Soft Peach - Logo Accent */
+    border: 4px solid white;
+    /* White ring for clean look */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.reaction-dot:active {
+    transform: translate(-50%, -50%) scale(0.9);
+    background-color: #ffcba4;
+    /* Slightly darker peach */
+}
+
+/* Sizes */
+.size-small {
+    width: 30px;
+    height: 30px;
+}
+
+.size-medium {
+    width: 60px;
+    height: 60px;
+}
+
+.size-large {
+    width: 90px;
+    height: 90px;
+}

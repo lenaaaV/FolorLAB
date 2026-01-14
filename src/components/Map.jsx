@@ -14,7 +14,7 @@ import { MEMORY_BOARD_LOCATIONS } from '../constants';
 import { fetchPlacesInBounds } from '../utils/overpass';
 import { generateBoardsForPlace } from '../utils/boardGenerator';
 
-export default function Map({ session, appLoaded, setAppLoaded }) {
+export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const userMarker = useRef(null);
@@ -573,6 +573,169 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
   //   drawFog();
   // }, [visitedPoints]); // Handled by RAF
 
+  // --- MISSION MODE SETUP ---
+  useEffect(() => {
+    // Refs for cleanup
+    let missionMarkers = [];
+
+    if (missionMode?.active && map.current) {
+      // Center on Darmstadt
+      map.current.jumpTo({
+        center: [8.6512, 49.8728],
+        zoom: 15.5,
+        pitch: 0,
+        bearing: 0
+      });
+
+      // Markers Removed - Using Buttons in Overlay now (User Request)
+    }
+
+    // --- MISSION 2: CLUTTER TEST ---
+    let clutterMarkers = [];
+    if (missionMode?.active && missionMode.missionId === '2_clutter' && map.current) {
+      // Center on Luisenplatz for the test
+      map.current.jumpTo({
+        center: [8.6510, 49.8724],
+        zoom: 17, // Closer zoom for clutter
+        pitch: 0,
+        bearing: 0
+      });
+
+      // We only spawn markers AFTER the user clicks "Start" in the overlay
+      // This logic is handled via a state trigger inside the component
+    }
+
+    return () => {
+      // Cleanup markers on unmount or mode change
+      missionMarkers.forEach(marker => marker.remove());
+      // Cleanup clutter (will be handled by state ref refs, but good to have safety)
+    };
+  }, [missionMode, appLoaded]); // Added appLoaded to ensure map.current is ready
+
+  // --- MISSION 2 STATE ---
+  const [m2State, setM2State] = useState('intro'); // intro | active | success | fail
+  const [m2Timer, setM2Timer] = useState(5);
+  const [m2Errors, setM2Errors] = useState(0);
+  const m2StartTimeRef = useRef(null);
+  const m2ClutterRefs = useRef([]); // To store marker instances
+
+  // Mission 2 Timer Logic
+  useEffect(() => {
+    let interval;
+    if (m2State === 'active' && m2Timer > 0) {
+      interval = setInterval(() => {
+        setM2Timer(prev => prev - 1);
+      }, 1000);
+    } else if (m2State === 'active' && m2Timer === 0) {
+      // Timeout!
+      setM2State('fail');
+      handleM2Finish(false, 'timeout');
+    }
+    return () => clearInterval(interval);
+  }, [m2State, m2Timer]);
+
+  const startMission2 = () => {
+    setM2State('active');
+    m2StartTimeRef.current = Date.now();
+
+    // SPAWN CLUTTER
+    if (map.current) {
+      // 1. Target (Active Memory Board - Full Color)
+      // Visual goal: Bottom Left of the screen/area.
+      const targetEl = document.createElement('div');
+      targetEl.className = 'mission-marker-zone mission-target pulse-target';
+      targetEl.style.width = '60px';
+      targetEl.style.height = '60px'; // Larger than clutter
+      targetEl.style.borderRadius = '50%';
+      targetEl.style.cursor = 'pointer';
+      targetEl.style.border = '3px solid #00ff88'; // Bright Green Border
+      targetEl.style.boxShadow = '0 0 20px #00ff88';
+      targetEl.style.overflow = 'hidden';
+      targetEl.style.background = 'white';
+
+      // Use the actual icon
+      const targetImg = document.createElement('img');
+      targetImg.src = '/memory-marker.jpg';
+      targetImg.style.width = '100%';
+      targetImg.style.height = '100%';
+      targetImg.style.objectFit = 'cover'; // Ensure it fills circle
+      targetImg.style.pointerEvents = 'none';
+      targetEl.appendChild(targetImg);
+
+      targetEl.onclick = () => {
+        if (m2State !== 'active') return;
+        setM2State('success');
+        handleM2Finish(true, 'success');
+      };
+
+      const targetMarker = new maplibregl.Marker({ element: targetEl })
+        .setLngLat([8.6505, 49.8720]) // South-West
+        .addTo(map.current);
+      m2ClutterRefs.current.push(targetMarker);
+
+      // 2. Distractions (Inactive/Old Markers - Grayscale & Smaller)
+      for (let i = 0; i < 25; i++) {
+        const distEl = document.createElement('div');
+        distEl.className = 'mission-clutter-dot';
+        distEl.style.width = '40px';
+        distEl.style.height = '40px';
+        distEl.style.borderRadius = '50%';
+        distEl.style.cursor = 'pointer';
+        distEl.style.overflow = 'hidden';
+        distEl.style.border = '2px solid #888';
+        distEl.style.opacity = '0.7';
+        distEl.style.background = '#eee';
+
+        const distImg = document.createElement('img');
+        distImg.src = '/memory-marker.jpg';
+        distImg.style.width = '100%';
+        distImg.style.height = '100%';
+        distImg.style.objectFit = 'cover';
+        distImg.style.filter = 'grayscale(100%)'; // The "fake" ones are grey
+        distImg.style.pointerEvents = 'none';
+        distEl.appendChild(distImg);
+
+        distEl.onclick = () => {
+          if (m2State !== 'active') return;
+          setM2Errors(prev => prev + 1); // Track error
+          distEl.style.borderColor = '#e74c3c'; // Red border on error
+          distEl.style.transform = 'scale(0.9)';
+        };
+
+        // Random pos around center
+        const rLng = 8.6510 + (Math.random() - 0.5) * 0.0035;
+        const rLat = 49.8724 + (Math.random() - 0.5) * 0.0025;
+
+        const distMarker = new maplibregl.Marker({ element: distEl })
+          .setLngLat([rLng, rLat])
+          .addTo(map.current);
+        m2ClutterRefs.current.push(distMarker);
+      }
+    }
+  };
+
+  const handleM2Finish = (success, reason) => {
+    // Cleanup markers
+    setTimeout(() => {
+      m2ClutterRefs.current.forEach(m => m.remove());
+      m2ClutterRefs.current = [];
+    }, 2000); // Keep visible for a sec so they see result
+
+    // Calculate time
+    const duration = Date.now() - m2StartTimeRef.current;
+
+    // Delay export slightly to show "Success/Fail" screen
+    setTimeout(() => {
+      missionMode.onOutcome({
+        success: success,
+        reason: reason,
+        duration_ms: duration,
+        error_count: m2Errors,
+        timer_left: m2Timer
+      });
+    }, 2000);
+  };
+
   // --- Onboarding Logic ---
   const [onboardingStep, setOnboardingStep] = useState(0); // 0 = inactive, 1-4 = active steps
 
@@ -704,13 +867,163 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
   };
 
 
+  // --- MISSION MODE LATENCY TRACKING & STATE ---
+  const missionStartRef = useRef(null);
+  const [missionStep, setMissionStep] = useState('choice'); // 'choice' | 'followup'
+  const [missionChoice, setMissionChoice] = useState(null); // 'efficiency' | 'discovery'
+
+  useEffect(() => {
+    if (missionMode?.active) {
+      missionStartRef.current = Date.now();
+      setMissionStep('choice');
+      setMissionChoice(null);
+    }
+  }, [missionMode?.active]);
+
+  const handleMissionClick = (choice) => {
+    setMissionChoice(choice);
+    setMissionStep('followup');
+  };
+
+  const handleFollowupSubmit = (followupAnswer) => {
+    const duration = missionStartRef.current ? Date.now() - missionStartRef.current : 0;
+
+    // Send full data object to App.jsx
+    missionMode.onOutcome({
+      choice: missionChoice,
+      duration: duration,
+      followup_answer: followupAnswer
+    });
+  };
+
   return (
     <div className="map-wrap">
       {showLoading && (
         <LoadingScreen text={loadingText} progress={loadingProgress} />
       )}
 
-      {showInfo && (
+      {/* Legacy Info Modal Disabled */}
+      {/* Modal Disabled for Simulator (Legacy) */}
+      {/* {showInfo && ( ... )} */}
+
+      {/* --- MISSION 1 OVERLAY --- */}
+      {
+        missionMode?.active && missionMode.missionId === '1_temptation' && (
+          <div className="mission-overlay-container">
+            {/* Markers are handled by map events now */}
+
+            {/* Narrative Card */}
+            <div className="mission-card-wrapper" style={{
+              position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)',
+              zIndex: 2001, width: '90%', maxWidth: '450px'
+            }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)',
+                padding: '24px', borderRadius: '16px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                textAlign: 'center', backdropFilter: 'blur(10px)'
+              }}>
+                {missionStep === 'choice' ? (
+                  <>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#2c3e50', marginBottom: '12px' }}>
+                      Mission 1: Die Versuchung
+                    </h2>
+                    <p style={{ fontSize: '1rem', lineHeight: '1.5', color: '#444', marginBottom: '16px' }}>
+                      Du stehst am <strong>Willy-Brandt-Platz</strong> und musst dringend zur <strong>Uni</strong> (Mitte).
+                      <br />
+                      <em>Aber:</em> Im <strong>Herrngarten</strong> (oben im Nebel) ist gerade ein seltenes <strong>Memory Board</strong> aufgetaucht.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                      <button
+                        onClick={() => handleMissionClick('efficiency')}
+                        style={{
+                          padding: '12px 20px',
+                          background: '#FFD6A5', // Soft Peach/Orange (Accent)
+                          color: '#5d4037', // Darker text for contrast
+                          border: 'none', borderRadius: '12px',
+                          fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(255, 214, 165, 0.4)',
+                          transition: 'transform 0.1s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                      >
+                        Zur Uni gehen (Effizient)
+                      </button>
+                      <button
+                        onClick={() => handleMissionClick('discovery')}
+                        style={{
+                          padding: '12px 20px',
+                          background: '#CDE7D0', // Folor Primary Soft Green
+                          color: '#2E4C38', // Dark Green Text
+                          border: 'none', borderRadius: '12px',
+                          fontSize: '0.95rem', fontWeight: '600', cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(205, 231, 208, 0.4)',
+                          transition: 'transform 0.1s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.02)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                      >
+                        Memory Board öffnen (Entdecken)
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* FOLLOW UP QUESTIONS */}
+                    {missionChoice === 'efficiency' ? (
+                      <>
+                        <h2 style={{ fontSize: '1.2rem', color: '#2c3e50', marginBottom: '12px' }}>Kurze Frage...</h2>
+                        <p style={{ fontSize: '0.95rem', color: '#555', marginBottom: '20px' }}>
+                          Hast du keine Angst, etwas Spannendes zu verpassen (FOMO)?
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {['Nein, Fokus ist wichtiger.', 'Doch, aber Pflicht ruft.', 'Ich mag keine Überraschungen.'].map(ans => (
+                            <button
+                              key={ans}
+                              onClick={() => handleFollowupSubmit(ans)}
+                              style={{
+                                padding: '10px', background: '#f0f0f0', border: '1px solid #ddd', borderRadius: '8px',
+                                cursor: 'pointer', fontSize: '0.9rem', color: '#333'
+                              }}
+                            >
+                              {ans}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h2 style={{ fontSize: '1.2rem', color: '#2c3e50', marginBottom: '12px' }}>Gute Wahl!</h2>
+                        <p style={{ fontSize: '0.95rem', color: '#555', marginBottom: '20px' }}>
+                          Was hat dich am meisten motiviert?
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {['Neugier / Entdeckerdrang', 'Abwechslung vom Alltag', 'Visueller Reiz (Nebel)'].map(ans => (
+                            <button
+                              key={ans}
+                              onClick={() => handleFollowupSubmit(ans)}
+                              style={{
+                                padding: '10px', background: '#f0f0f0', border: '1px solid #ddd', borderRadius: '8px',
+                                cursor: 'pointer', fontSize: '0.9rem', color: '#333'
+                              }}
+                            >
+                              {ans}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Legacy Info Modal (Disabled) */}
+      {/* Modal Disabled for Simulator */ false && (
         <div className="info-modal-overlay">
           <div className="info-modal">
             <div className="info-scroll-content">
@@ -779,17 +1092,20 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
           </div>
         </div>
 
-      )}
+      )
+      }
 
 
 
-      {showBoard && (
-        <MemoryBoard
-          onClose={() => setShowBoard(null)}
-          locationName={showBoard.name}
-          locationImage={showBoard.image}
-        />
-      )}
+      {
+        showBoard && (
+          <MemoryBoard
+            onClose={() => setShowBoard(null)}
+            locationName={showBoard.name}
+            locationImage={showBoard.image}
+          />
+        )
+      }
 
       <div ref={mapContainer} className="map">
         <canvas ref={canvasRef} className="fog-overlay" />
@@ -876,9 +1192,11 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
 
 
 
-      {showChallenges && (
-        <ChallengesModal onClose={() => setShowChallenges(false)} />
-      )}
+      {
+        showChallenges && (
+          <ChallengesModal onClose={() => setShowChallenges(false)} />
+        )
+      }
 
       <div className="controls-container">
         <button className="info-trigger-btn" onClick={() => setShowInfo(true)}>
@@ -899,65 +1217,138 @@ export default function Map({ session, appLoaded, setAppLoaded }) {
         )}
       </div>
 
-      {/* Onboarding Overlay */}
-      {onboardingStep > 0 && (
-        <div
-          ref={onboardingOverlayRef}
-          className={`onboarding-overlay step-${onboardingStep}`}
-          style={getSpotlightStyle()}
-        >
-          <div className="spotlight-mask"></div>
+      {/* --- MISSION 2 CLUTTER OVERLAY --- */}
+      {
+        missionMode?.active && missionMode.missionId === '2_clutter' && (
+          <div className="mission-overlay-container" style={{ pointerEvents: 'none' }}>
+            {/* POINTER EVENTS NONE ON CONTAINER so we can click map, BUT enabled on children buttons */}
 
-          <div className="onboarding-content">
-            {onboardingStep === 1 && (
-              <div className="onboarding-card">
-                <h2>Hier bist du.</h2>
-                <div className="onboarding-actions">
-                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
-                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
-                </div>
+            {/* INTRO SCREEN */}
+            {m2State === 'intro' && (
+              <div style={{
+                pointerEvents: 'auto',
+                background: 'rgba(255,255,255,0.95)', padding: '30px', borderRadius: '20px',
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                textAlign: 'center', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', maxWidth: '90%'
+              }}>
+                <h2 style={{ fontSize: '1.5rem', marginBottom: '10px' }}>⚡️ Blitz-Challenge</h2>
+                <p style={{ fontSize: '1rem', color: '#555', marginBottom: '20px', lineHeight: '1.5' }}>
+                  Du hast genau <strong>5 Sekunden</strong> Zeit!
+                  <br />
+                  Finde und klicke auf das <strong>grüne Memory Board</strong> am Luisenplatz.
+                  <br />
+                  <span style={{ fontSize: '0.9rem', color: '#999' }}>(Es liegt unten links im Chaos)</span>
+                </p>
+                <button
+                  onClick={startMission2}
+                  style={{
+                    background: '#333', color: 'white', border: 'none', padding: '15px 40px',
+                    fontSize: '1.2rem', borderRadius: '50px', cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                >
+                  GO!
+                </button>
               </div>
             )}
 
-            {onboardingStep === 2 && (
-              <div className="onboarding-card">
-                <h2>Alles ist noch neblig.</h2>
-                <div className="onboarding-actions">
-                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
-                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
-                </div>
+            {/* ACTIVE TIMER */}
+            {m2State === 'active' && (
+              <div style={{
+                position: 'absolute', top: '100px', left: '50%', transform: 'translateX(-50%)',
+                background: m2Timer <= 2 ? '#e74c3c' : '#333',
+                color: 'white', padding: '10px 30px', borderRadius: '50px',
+                fontSize: '2rem', fontWeight: 'bold',
+                boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+                transition: 'background 0.3s'
+              }}>
+                {m2Timer}s
               </div>
             )}
 
-            {onboardingStep === 3 && (
-              <div className="onboarding-card">
-                <h2>Lauf los, um Farben zu sehen.</h2>
-                <div className="onboarding-actions">
-                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
-                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
-                </div>
+            {/* RESULTS */}
+            {m2State === 'success' && (
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                background: '#2ecc71', color: 'white', padding: '40px', borderRadius: '20px',
+                textAlign: 'center', boxShadow: '0 20px 50px rgba(46, 204, 113, 0.4)'
+              }}>
+                <h1>🎉 GEFUNDEN!</h1>
+                <p>Klasse Reaktion.</p>
               </div>
             )}
 
-            {onboardingStep === 4 && (
-              <div className="onboarding-card">
-                <h2>Entdecke und Poste in MemoryBoards.</h2>
-                <div className="onboarding-actions">
-                  <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
-                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
-                </div>
-              </div>
-            )}
-
-            {onboardingStep === 5 && (
-              <div className="onboarding-card">
-                <h2>Nur vor Ort sichtbar.</h2>
-                <button className="onboarding-btn" onClick={nextOnboardingStep}>Alles klar!</button>
+            {m2State === 'fail' && (
+              <div style={{
+                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                background: '#e74c3c', color: 'white', padding: '40px', borderRadius: '20px',
+                textAlign: 'center', boxShadow: '0 20px 50px rgba(231, 76, 60, 0.4)'
+              }}>
+                <h1>⏰ ZU SPÄT!</h1>
+                <p>Das war zu viel Chaos.</p>
               </div>
             )}
           </div>
-        </div>
-      )
+        )
+      }
+      {
+        onboardingStep > 0 && (
+          <div
+            ref={onboardingOverlayRef}
+            className={`onboarding-overlay step-${onboardingStep}`}
+            style={getSpotlightStyle()}
+          >
+            <div className="spotlight-mask"></div>
+
+            <div className="onboarding-content">
+              {onboardingStep === 1 && (
+                <div className="onboarding-card">
+                  <h2>Hier bist du.</h2>
+                  <div className="onboarding-actions">
+                    <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                    <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                  </div>
+                </div>
+              )}
+
+              {onboardingStep === 2 && (
+                <div className="onboarding-card">
+                  <h2>Alles ist noch neblig.</h2>
+                  <div className="onboarding-actions">
+                    <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                    <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                  </div>
+                </div>
+              )}
+
+              {onboardingStep === 3 && (
+                <div className="onboarding-card">
+                  <h2>Lauf los, um Farben zu sehen.</h2>
+                  <div className="onboarding-actions">
+                    <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                    <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                  </div>
+                </div>
+              )}
+
+              {onboardingStep === 4 && (
+                <div className="onboarding-card">
+                  <h2>Entdecke und Poste in MemoryBoards.</h2>
+                  <div className="onboarding-actions">
+                    <button className="onboarding-skip-btn" onClick={() => setOnboardingStep(0)}>Überspringen</button>
+                    <button className="onboarding-btn" onClick={nextOnboardingStep}>Weiter</button>
+                  </div>
+                </div>
+              )}
+
+              {onboardingStep === 5 && (
+                <div className="onboarding-card">
+                  <h2>Nur vor Ort sichtbar.</h2>
+                  <button className="onboarding-btn" onClick={nextOnboardingStep}>Alles klar!</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )
       }
     </div >
   );

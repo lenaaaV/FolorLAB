@@ -714,6 +714,58 @@
 }
 
 /* Search Bar - Light Glassmorphism Design */
+
+/* Mission Mode Pulsing Effects */
+.mission-pulse {
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
+  animation: missionPulse 2s infinite;
+  background: rgba(255, 71, 87, 0.2);
+  border: 2px solid rgba(255, 71, 87, 0.8);
+}
+
+.mission-pulse-green {
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  animation: missionPulseGreen 2s infinite;
+  background: rgba(76, 175, 80, 0.2);
+  border: 2px solid rgba(76, 175, 80, 0.8);
+}
+
+@keyframes missionPulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 20px rgba(255, 71, 87, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+  }
+}
+
+@keyframes missionPulseGreen {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 20px rgba(76, 175, 80, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
 /* Search Bar - Light Glassmorphism Design */
 /* Top Bar Layout */
 .map-top-bar {

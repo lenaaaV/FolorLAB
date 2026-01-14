@@ -1,0 +1,79 @@
+.welcome-screen-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color);
+  /* Pure Soft White */
+  color: var(--text-color);
+  font-family: 'Outfit', sans-serif;
+  /* Professional font from index.css */
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.welcome-content {
+  max-width: 480px;
+  width: 100%;
+  padding: 60px 40px;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  /* Soft shadow, no hard borders */
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  /* Extremely subtle border */
+}
+
+.welcome-logo {
+  height: 70px;
+  /* Slightly smaller for elegance */
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.welcome-title {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  /* Darker, professional text */
+  letter-spacing: -0.02em;
+}
+
+.welcome-text {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  color: var(--text-color);
+  font-weight: 400;
+}
+
+.welcome-start-button {
+  background-color: var(--primary-dark);
+  /* Desaturated Soft Green */
+  color: white;
+  border: none;
+  padding: 16px 48px;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 50px;
+  /* Pill shape */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(169, 208, 182, 0.4);
+  /* Colored shadow matching button */
+  letter-spacing: 0.5px;
+}
+
+.welcome-start-button:hover {
+  transform: translateY(-2px);
+  background-color: #8fb99d;
+  /* Slightly darker/richer on hover */
+  box-shadow: 0 6px 16px rgba(169, 208, 182, 0.5);
+}
+
+.welcome-start-button:active {
+  transform: translateY(0);
+}
