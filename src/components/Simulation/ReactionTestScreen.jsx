@@ -10,7 +10,7 @@ export default function ReactionTestScreen({ onComplete }) {
     const [dotVisible, setDotVisible] = useState(false);
 
     const startTimeRef = useRef(null);
-    const maxRounds = 10;
+    const maxRounds = 5;
 
     useEffect(() => {
         if (active && round < maxRounds && !dotVisible) {
@@ -61,6 +61,16 @@ export default function ReactionTestScreen({ onComplete }) {
         setActive(true);
     };
 
+    const handleSkip = () => {
+        // Mock results for skipping
+        const mockResults = Array(5).fill(0).map((_, i) => ({
+            round: i + 1,
+            size: 'medium',
+            latency_ms: 350 + Math.floor(Math.random() * 100)
+        }));
+        onComplete(mockResults);
+    };
+
     if (!active) {
         return (
             <div className="reaction-intro">
@@ -71,7 +81,10 @@ export default function ReactionTestScreen({ onComplete }) {
                         <br /><br />
                         Klicke so schnell wie möglich auf die erscheinenden Punkte.
                     </p>
-                    <button onClick={startTest} className="reaction-start-btn">Starten (10 Runden)</button>
+                    <button onClick={startTest} className="reaction-start-btn">Starten (5 Runden)</button>
+                    <button onClick={handleSkip} className="reaction-skip-btn" style={{ marginTop: '10px', background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Überspringen
+                    </button>
                 </div>
             </div>
         );
@@ -116,6 +129,9 @@ export default function ReactionTestScreen({ onComplete }) {
 
     return (
         <div className="reaction-area">
+            <div className="reaction-top-bar" style={{ position: 'absolute', top: 10, right: 10, zIndex: 100 }}>
+                <button onClick={handleSkip} style={{ background: 'rgba(255,255,255,0.5)', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>Skip</button>
+            </div>
             <div className="reaction-counter">Runde {round + 1} / {maxRounds}</div>
             {dotVisible && (
                 <button

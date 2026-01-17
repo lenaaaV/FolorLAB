@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './Map.css';
-import MemoryBoard from './MemoryBoard';
+import MemoryBoard, { TargetIndicator } from './MemoryBoard';
 import LoadingScreen from './LoadingScreen';
 
 import { supabase } from '../supabaseClient';
@@ -27,6 +27,47 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   const [dbPointsLoaded, setDbPointsLoaded] = useState(false);
   const [hasLocation, setHasLocation] = useState(false);
   const [isFollowing, setIsFollowing] = useState(true);
+
+  // Virtual Movement State
+  const [virtualPos, setVirtualPos] = useState(null); // { lng, lat }
+  const [isWalking, setIsWalking] = useState(false);
+  const animationRef = useRef(null);
+  const routeCoordsRef = useRef(null);
+  // --- MYSTERY GLOWS (Curiosity Test) ---
+  const mysteryPointsRef = useRef([]); // [{lng, lat, found: false, id: 1}]
+
+  // Generate Mystery Points along the path (approximate corridor)
+  const generateMysteryPoints = (startLng, startLat) => {
+    const points = [];
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      // Create points somewhat randomly in the general direction of the goal but off-path
+      // Direction is roughly East-North-East
+      const progress = (i + 1) / (count + 2); // Spread them out
+      const baseLng = startLng + (8.6560 - startLng) * progress;
+      const baseLat = startLat + (49.8750 - startLat) * progress;
+
+      // Add random deviation (approx 200-500m off-track)
+      const devLat = (Math.random() - 0.5) * 0.008;
+      const devLng = (Math.random() - 0.5) * 0.008;
+
+      points.push({
+        id: i,
+        lng: baseLng + devLng,
+        lat: baseLat + devLat,
+        found: false
+      });
+    }
+    // Add one very close to start to ensure visibility immediately
+    points.push({
+      id: 99,
+      lng: startLng + 0.002, // Just slightly East
+      lat: startLat + 0.001, // Slightly North
+      found: false
+    });
+
+    mysteryPointsRef.current = points;
+  };
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [showLoading, setShowLoading] = useState(!appLoaded);
   const [loadingText, setLoadingText] = useState("Satelliten werden poliert...");
@@ -82,42 +123,102 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
     const width = mapContainer.current.clientWidth;
     const height = mapContainer.current.clientHeight;
 
-    // Resize canvas if needed (debounced slightly by RAF nature, but good to check)
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
     }
 
-    // Clear entire canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw semi-transparent white fog background
+    // 1. Draw Fog Background
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'; // White fog
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
     ctx.fillRect(0, 0, width, height);
 
-    // Set composite operation to 'destination-out' to "erase" the fog
+    // 2. Draw Route ON TOP of Fog
+    if (routeCoordsRef.current) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#e74c3c'; // Red
+      ctx.setLineDash([10, 10]);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = 'white';
+      ctx.shadowBlur = 5;
+
+      ctx.beginPath();
+      let first = true;
+      routeCoordsRef.current.forEach(coord => {
+        const { x, y } = map.current.project(coord);
+        if (first) {
+          ctx.moveTo(x, y);
+          first = false;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+
+      // Reset styles
+      ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+    }
+
+
+    // --- DRAW MYSTERY GLOWS (In the fog) ---
+    // These should appear "under" the fog or "in" it.
+    // Since we draw white fog over everything, drawing COLORED glows *before* the destination-out
+    // efficiently makes them look like they are glowing *on* the white fog if we draw them 
+    // using source-over BUT with a semi-transparent colored gradient.
+
+    // Actually, to make them invisible *unless* near but visible *as glows*,
+    // let's draw them ON TOP of the white fog with a nice pulse.
+
+    const now = Date.now();
+    const pulse = (Math.sin(now / 500) + 1) / 2; // 0 to 1 oscillating
+    const glowRadiusBase = 20;
+
+    mysteryPointsRef.current.forEach(point => {
+      if (point.found) return; // Don't show if found/collected? Or maybe show differently?
+
+      const { x, y } = map.current.project([point.lng, point.lat]);
+
+      // Culling
+      if (x < -50 || x > width + 50 || y < -50 || y > height + 50) return;
+
+      // Draw Glow
+      const r = glowRadiusBase + (pulse * 10);
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
+      grad.addColorStop(0, 'rgba(255, 215, 0, 0.8)'); // Gold/Yellow center
+      grad.addColorStop(0.5, 'rgba(255, 165, 0, 0.3)'); // Orange mid
+      grad.addColorStop(1, 'rgba(255, 165, 0, 0)'); // Fade out
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Add a "Question Mark" or symbol?
+      // Maybe just the glow is more mysterious (User said "iwo verstecken")
+    });
+
+    // 3. Cut Holes
     ctx.globalCompositeOperation = 'destination-out';
 
     const bounds = map.current.getBounds();
-    // Add some padding to bounds to ensure circles on the edge are drawn
-    // 0.01 degrees is roughly 1km, sufficient for 200m radius
     const padding = 0.01;
     const sw = bounds.getSouthWest();
     const ne = bounds.getNorthEast();
 
-    // Helper to draw a hole
-    const drawHole = (lng, lat) => {
-      // Viewport culling: simple bounding box check
+    const drawHole = (lng, lat, radiusMultiplier = 1) => {
       if (lng < sw.lng - padding || lng > ne.lng + padding ||
         lat < sw.lat - padding || lat > ne.lat + padding) {
         return;
       }
 
       const { x, y } = map.current.project([lng, lat]);
-
-      // Ensure radius is at least 1px to avoid disappearing at low zooms
-      const radius = Math.max(getPixelRadius(lat), 1);
+      const radius = Math.max(getPixelRadius(lat) * radiusMultiplier, 1);
 
       const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
       gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
@@ -129,17 +230,152 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       ctx.fill();
     };
 
-    // Draw user location hole
     if (userMarker.current) {
       const pos = userMarker.current.getLngLat();
       drawHole(pos.lng, pos.lat);
     }
 
-    // Draw visited points holes
     visitedPointsRef.current.forEach(point => {
       drawHole(point.lng, point.lat);
     });
   };
+
+  // --- Route Rendering Logic ---
+  const drawRoute = async (startLng, startLat, endLng, endLat) => {
+    if (!map.current) return;
+
+    try {
+      const url = `https://api.maptiler.com/directions/walking/${startLng},${startLat};${endLng},${endLat}?key=${API_KEY}&geometries=geojson&overview=full`;
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.routes && data.routes.length > 0) {
+        const route = data.routes[0].geometry;
+
+        if (route.type === 'LineString') {
+          routeCoordsRef.current = route.coordinates;
+        }
+
+        if (map.current.getSource('route')) {
+          map.current.getSource('route').setData(route);
+        } else {
+          map.current.addSource('route', {
+            type: 'geojson',
+            data: route
+          });
+
+          map.current.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#e74c3c',
+              'line-width': 5,
+              'line-opacity': 0.7,
+              'line-dasharray': [2, 1]
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch route:", error);
+    }
+  };
+
+  // --- Virtual Walking Logic ---
+  const walkTo = (targetLng, targetLat) => {
+    if (!missionMode?.isVirtual || isWalking) return;
+
+    const startLng = virtualPos ? virtualPos.lng : lng;
+    const startLat = virtualPos ? virtualPos.lat : lat;
+
+    // Calculate distance
+    const R = 6371e3; // Earth radius in meters
+    const phi1 = startLat * Math.PI / 180;
+    const phi2 = targetLat * Math.PI / 180;
+    const dPhi = (targetLat - startLat) * Math.PI / 180;
+    const dLambda = (targetLng - startLng) * Math.PI / 180;
+
+    const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) *
+      Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+
+    // Speed: 15 km/h (fast walk/jog for simulation feel) = ~4.1 m/s
+    // Real walking is too slow for patience, so we speed it up slightly
+    const speed = 250; // meters per second (Simulation Speed)
+    const duration = (dist / speed) * 1000;
+
+    const startTime = Date.now();
+    setIsWalking(true);
+
+    const animateWalk = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Lerp
+      const currentLng = startLng + (targetLng - startLng) * progress;
+      const currentLat = startLat + (targetLat - startLat) * progress;
+
+      setVirtualPos({ lng: currentLng, lat: currentLat });
+
+      // Update Marker
+      if (userMarker.current) {
+        userMarker.current.setLngLat([currentLng, currentLat]);
+      }
+
+      // Update Fog & Visited
+      setLat(currentLat);
+      setLng(currentLng);
+      // We manually trigger fog redraw via RAF loop reading these value, 
+      // but visited points need update to clear path
+      setVisitedPoints(prev => {
+        const lastPoint = prev[prev.length - 1];
+        if (lastPoint) {
+          const d = Math.sqrt(Math.pow(lastPoint.lng - currentLng, 2) + Math.pow(lastPoint.lat - currentLat, 2));
+          if (d < 0.00005) return prev; // Filter close points
+        }
+        const newPoints = [...prev, { lng: currentLng, lat: currentLat }];
+        visitedPointsRef.current = newPoints;
+        return newPoints;
+      });
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animateWalk);
+      } else {
+        setIsWalking(false);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animateWalk);
+  };
+
+  // Click Listener for Virtual Walk
+  useEffect(() => {
+    if (!map.current || !missionMode?.isVirtual) return;
+
+    const handleClick = (e) => {
+      walkTo(e.lngLat.lng, e.lngLat.lat);
+    };
+
+    map.current.on('click', handleClick);
+    // Change cursor
+    map.current.getCanvas().style.cursor = 'crosshair';
+
+    return () => {
+      if (map.current) {
+        map.current.off('click', handleClick);
+        map.current.getCanvas().style.cursor = '';
+      }
+    };
+  }, [missionMode, virtualPos, isWalking, lng, lat]);
+
 
   // RAF Loop for smooth animation
   useEffect(() => {
@@ -326,17 +562,17 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       /*
       map.current.on('moveend', async () => {
         if (!map.current) return;
-
+   
         const bounds = map.current.getBounds();
         const zoom = map.current.getZoom();
-
+   
         // Only fetch if zoomed in enough to avoid fetching whole country
         if (zoom > 10) {
           const { places, pois } = await fetchPlacesInBounds(bounds);
-
+   
           const newBoards = [];
           const newProcessedIds = new Set(processedPlaceIds);
-
+   
           places.forEach(place => {
             if (!newProcessedIds.has(place.id)) {
               const boards = generateBoardsForPlace(place, pois);
@@ -344,7 +580,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
               newProcessedIds.add(place.id);
             }
           });
-
+   
           if (newBoards.length > 0) {
             setGeneratedBoards(prev => [...prev, ...newBoards]);
             setProcessedPlaceIds(newProcessedIds);
@@ -361,16 +597,17 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
         .addTo(map.current);
 
       // Dynamic Memory Board Markers
+      /*
       MEMORY_BOARD_LOCATIONS.forEach(location => {
         const container = document.createElement('div');
         container.className = 'board-marker-container';
-
+   
         const el = document.createElement('div');
         el.className = 'board-marker';
-
+   
         // Custom style for ISE x Google to keep it blue
         const leafStyle = location.name === 'ISE x Google' ? 'background: #4285F4;' : '';
-
+   
         el.innerHTML = `
           <div class="board-icon-wrapper">
             <div class="board-leaf" style="${leafStyle}"></div>
@@ -382,7 +619,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
             <div class="board-post"></div>
           </div>
         `;
-
+   
         el.onclick = (e) => {
           e.stopPropagation();
           setShowBoard({
@@ -390,32 +627,34 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
             image: location.image
           });
         };
-
+   
         container.appendChild(el);
-
+   
         new maplibregl.Marker({ element: container })
           .setLngLat(location.coordinates)
           .addTo(map.current);
       });
+      */
     } catch (error) {
       console.error("Error initializing map:", error);
     }
   };
 
   // Render generated boards
+  /*
   useEffect(() => {
     if (!map.current || generatedBoards.length === 0) return;
-
+   
     generatedBoards.forEach(board => {
       // Check if marker already exists to avoid duplicates (though state check helps)
       // For now, simple add. In production, we'd track marker instances to remove them if needed.
-
+   
       const container = document.createElement('div');
       container.className = 'board-marker-container';
-
+   
       const el = document.createElement('div');
       el.className = 'board-marker';
-
+   
       el.innerHTML = `
           <div class="board-icon-wrapper">
             <div class="board-leaf" style="background: #a29bfe;"></div>
@@ -427,7 +666,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
             <div class="board-post"></div>
           </div>
         `;
-
+   
       el.onclick = (e) => {
         e.stopPropagation();
         setShowBoard({
@@ -435,16 +674,59 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
           image: board.image
         });
       };
-
+   
       container.appendChild(el);
-
+   
       new maplibregl.Marker({ element: container })
         .setLngLat(board.coordinates)
         .addTo(map.current);
     });
   }, [generatedBoards]);
+  */
 
   useEffect(() => {
+    // 0. VIRTUAL MODE (Override Geolocation)
+    if (missionMode?.isVirtual) {
+      if (!hasLocation && missionMode.startPosition) {
+        const [startLng, startLat] = missionMode.startPosition;
+        generateMysteryPoints(startLng, startLat);
+        setLng(startLng);
+        setLat(startLat);
+        setVirtualPos({ lng: startLng, lat: startLat });
+        setHasLocation(true);
+        initMap(startLng, startLat);
+        setVirtualPos({ lng: startLng, lat: startLat });
+        setHasLocation(true);
+        initMap(startLng, startLat);
+
+        // Draw route to Uni/Home if in Fog Mission
+        if (missionMode.missionId === 'fog_test') {
+          // Wait a bit for map to init
+          setTimeout(() => {
+            // Add "Home/Uni" Marker
+            const el = document.createElement('div');
+            el.className = 'mission-target-marker';
+            el.style.background = 'white';
+            el.style.width = '40px';
+            el.style.height = '40px';
+            el.style.borderRadius = '50%';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+            el.innerHTML = '<span style="font-size:24px;">🎓</span>';
+
+            new maplibregl.Marker({ element: el })
+              .setLngLat([8.6560, 49.8750])
+              .addTo(map.current);
+
+            drawRoute(startLng, startLat, 8.6560, 49.8750);
+          }, 1000);
+        }
+      }
+      return; // Skip real geolocation
+    }
+
     // 1. Try Geolocation
     if ('geolocation' in navigator) {
       const watchId = navigator.geolocation.watchPosition(
@@ -548,7 +830,8 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
 
   // Save visited points to Supabase (debounced)
   useEffect(() => {
-    if (!session?.user?.id || !dbPointsLoaded) return;
+    // Disable saving during Mission Mode to keep it a clean "Simulation"
+    if (!session?.user?.id || !dbPointsLoaded || missionMode?.active) return;
 
     const savePoints = async () => {
       const { error } = await supabase
@@ -578,39 +861,68 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
     // Refs for cleanup
     let missionMarkers = [];
 
-    if (missionMode?.active && map.current) {
-      // Center on Darmstadt
-      map.current.jumpTo({
-        center: [8.6512, 49.8728],
-        zoom: 15.5,
-        pitch: 0,
-        bearing: 0
-      });
+    if (missionMode?.active) {
+      // 1. HARD RESET FOG (User Request: "Alles mit Nebel bedeckt")
+      setVisitedPoints([]);
+      visitedPointsRef.current = [];
 
-      // Markers Removed - Using Buttons in Overlay now (User Request)
-    }
+      // 2. Center Map on Start
+      if (map.current) {
+        const startPos = missionMode.startPosition || [8.6512, 49.8728];
+        map.current.jumpTo({
+          center: startPos,
+          zoom: 15.0,
+          pitch: 0,
+          bearing: 0
+        });
+      }
 
-    // --- MISSION 2: CLUTTER TEST ---
-    let clutterMarkers = [];
-    if (missionMode?.active && missionMode.missionId === '2_clutter' && map.current) {
-      // Center on Luisenplatz for the test
-      map.current.jumpTo({
-        center: [8.6510, 49.8724],
-        zoom: 17, // Closer zoom for clutter
-        pitch: 0,
-        bearing: 0
-      });
+      // 3. Draw Route immediately (if Fog Mission)
+      if (missionMode.missionId === 'fog_test' && missionMode.startPosition) {
+        // Clear previous route
+        routeCoordsRef.current = null;
+        if (map.current && map.current.getSource('route')) {
+          map.current.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] } });
+        }
 
-      // We only spawn markers AFTER the user clicks "Start" in the overlay
-      // This logic is handled via a state trigger inside the component
+        // NO RED LINE for Research Version (User Request)
+        // We rely solely on the Arrow Indicator.
+
+        setTimeout(() => {
+          // Re-add Target Marker just in case
+          // Remove old Target markers if any exist in DOM (hacky cleanup)
+          const oldMarkers = document.getElementsByClassName('mission-target-marker');
+          while (oldMarkers.length > 0) {
+            oldMarkers[0].parentNode.removeChild(oldMarkers[0]);
+          }
+
+          const el = document.createElement('div');
+          el.className = 'mission-target-marker';
+          el.style.background = 'white';
+          el.style.width = '48px';
+          el.style.height = '48px';
+          el.style.borderRadius = '50%';
+          el.style.display = 'flex';
+          el.style.alignItems = 'center';
+          el.style.justifyContent = 'center';
+          el.style.boxShadow = '0 0 15px rgba(0,255,136, 0.6)';
+          el.style.border = '3px solid #00ff88';
+          el.style.className = 'mission-target-marker'; // Tag for cleanup
+          el.innerHTML = '<span style="font-size:24px;">🏁</span>';
+
+          new maplibregl.Marker({ element: el })
+            .setLngLat([8.6560, 49.8750])
+            .addTo(map.current);
+
+        }, 1500);
+      }
     }
 
     return () => {
-      // Cleanup markers on unmount or mode change
+      // Cleanup
       missionMarkers.forEach(marker => marker.remove());
-      // Cleanup clutter (will be handled by state ref refs, but good to have safety)
     };
-  }, [missionMode, appLoaded]); // Added appLoaded to ensure map.current is ready
+  }, [missionMode]); // Removed appLoaded to allow re-runs on mode switch
 
   // --- MISSION 2 STATE ---
   const [m2State, setM2State] = useState('intro'); // intro | active | success | fail
@@ -1216,6 +1528,116 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
           </button>
         )}
       </div>
+
+      {/* Off-screen Target Indicator */}
+      {missionMode?.active && missionMode.missionId === 'fog_test' && (
+        <TargetIndicator
+          userLat={lat}
+          userLng={lng}
+          targetLat={49.8750}
+          targetLng={8.6560}
+          distance={(() => {
+            if (!lat || !lng) return 0;
+            const R = 6371e3;
+            const phi1 = lat * Math.PI / 180;
+            const phi2 = 49.8750 * Math.PI / 180;
+            const dPhi = (49.8750 - lat) * Math.PI / 180;
+            const dLambda = (8.6560 - lng) * Math.PI / 180;
+            const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+          })()}
+        />
+      )}
+
+      {/* ARRIVAL POPUP (PROFESSIONAL / RESEARCH) */}
+      {missionMode?.active && missionMode.missionId === 'fog_test' && (() => {
+        if (!lat || !lng) return null;
+        const R = 6371e3;
+        const phi1 = lat * Math.PI / 180;
+        const phi2 = 49.8750 * Math.PI / 180;
+        const dPhi = (49.8750 - lat) * Math.PI / 180;
+        const dLambda = (8.6560 - lng) * Math.PI / 180;
+        const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const dist = R * c;
+
+        if (dist < 80) { // Arrival
+          return (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#ffffff',
+              padding: '40px',
+              borderRadius: '12px',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+              textAlign: 'left',
+              zIndex: 2000,
+              maxWidth: '500px',
+              width: '90%',
+              border: '1px solid #e0e0e0',
+              fontFamily: "'Inter', sans-serif"
+            }}>
+              <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem', color: '#1a1a1a', fontWeight: '600' }}>Ziel erreicht.</h2>
+              <p style={{ fontSize: '1rem', color: '#555', marginBottom: '30px' }}>
+                Vielen Dank für die Teilnahme. Bitte beantworten Sie kurz diese zwei Fragen zur Auswertung der Simulation.
+              </p>
+
+              {/* Question 1 */}
+              <div style={{ marginBottom: '25px' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '10px', color: '#333' }}>
+                  1. Wie sicher haben Sie sich bei der Orientierung gefühlt?
+                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f5f5f5', padding: '10px', borderRadius: '8px' }}>
+                  {['Sehr unsicher', 'Unsicher', 'Neutral', 'Sicher', 'Sehr sicher'].map((label, i) => (
+                    <button key={i} style={{
+                      border: '1px solid #ddd', background: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', flex: 1, margin: '0 5px'
+                    }} onClick={(e) => {
+                      // Simple visual selection logic could go here, for now just alert/log 
+                      e.target.style.borderColor = '#3498db';
+                      e.target.style.background = '#ebf5fb';
+                    }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Question 2 */}
+              <div style={{ marginBottom: '30px' }}>
+                <label style={{ display: 'block', fontWeight: '500', marginBottom: '10px', color: '#333' }}>
+                  2. Hat der Nebel Ihre Routenwahl maßgeblich beeinflusst?
+                </label>
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <button style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
+                    onClick={(e) => { e.target.style.background = '#ebf5fb'; e.target.style.borderColor = '#3498db'; }}
+                  >
+                    Nein, ich folgte strikt der Richtung.
+                  </button>
+                  <button style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
+                    onClick={(e) => { e.target.style.background = '#ebf5fb'; e.target.style.borderColor = '#3498db'; }}
+                  >
+                    Ja, ich musste oft ausweichen/suchen.
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'right' }}>
+                <button style={{
+                  background: '#1a1a1a', color: 'white', border: 'none',
+                  padding: '12px 30px', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer',
+                  fontWeight: '500'
+                }} onClick={() => window.location.reload()}>
+                  Abschließen
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* --- MISSION 2 CLUTTER OVERLAY --- */}
       {

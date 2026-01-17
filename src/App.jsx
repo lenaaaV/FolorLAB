@@ -4,6 +4,7 @@ import Map from './components/Map';
 import StoryIntro from './components/Simulation/StoryIntro';
 import ProfilingScreen from './components/Simulation/ProfilingScreen';
 import ReactionTestScreen from './components/Simulation/ReactionTestScreen';
+import MissionFog from './components/Simulation/MissionFog';
 import WelcomeScreen from './components/Simulation/WelcomeScreen'; // Keep for fallback imports
 import './App.css';
 
@@ -224,26 +225,31 @@ function App() {
     return <ReactionTestScreen onComplete={handleCalibrationComplete} />;
   }
 
-  // 4. Mission 1: The Temptation (Live Map Overlay)
+  // 4. Mission 1: Fog of Curiosity (Virtual Walk)
   if (simulationStep === 'mission_1') {
     return (
       <div className="App simulator-mode">
         <div className="simulation-status-bar">
           <div className="status-dot"></div>
-          <span>Mission: Decision</span>
+          <span>Mission: Fog of Curiosity</span>
         </div>
         <div className="content-area">
           <ErrorBoundary>
-            <Map
-              session={session}
-              appLoaded={appLoaded}
-              setAppLoaded={setAppLoaded}
-              missionMode={{
-                active: true,
-                missionId: '1_temptation',
-                onOutcome: handleMissionOneData
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <Map
+                session={session}
+                appLoaded={appLoaded}
+                setAppLoaded={setAppLoaded}
+                missionMode={{
+                  active: true,
+                  isVirtual: true,
+                  // Much further away (Griesheim West) - approx 6-7km
+                  startPosition: [8.5500, 49.8600],
+                  missionId: 'fog_test'
+                }}
+              />
+              <MissionFog onComplete={handleMissionOneData} />
+            </div>
           </ErrorBoundary>
         </div>
       </div>

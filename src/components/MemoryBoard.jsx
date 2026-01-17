@@ -394,3 +394,75 @@ export default function MemoryBoard({ onClose, locationName = "Alte Brücke", lo
         </div>
     );
 }
+
+// Helper for bearing
+function getBearing(startLat, startLng, destLat, destLng) {
+    const startLatRad = startLat * (Math.PI / 180);
+    const startLngRad = startLng * (Math.PI / 180);
+    const destLatRad = destLat * (Math.PI / 180);
+    const destLngRad = destLng * (Math.PI / 180);
+
+    const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
+    const x = Math.cos(startLatRad) * Math.sin(destLatRad) -
+        Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
+    const brng = Math.atan2(y, x);
+    const brngDeg = (brng * 180 / Math.PI + 360) % 360;
+    return brngDeg;
+}
+
+// --- TARGET INDICATOR COMPONENT ---
+export function TargetIndicator({ userLat, userLng, targetLat, targetLng, distance }) {
+    if (!userLat || !userLng) return null;
+
+    const bearing = getBearing(userLat, userLng, targetLat, targetLng);
+
+    // Format distance
+    const distDisplay = distance > 1000
+        ? `${(distance / 1000).toFixed(1)} km`
+        : `${Math.round(distance)} m`;
+
+    return (
+        <div style={{
+            position: 'absolute',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            zIndex: 50,
+            pointerEvents: 'none'
+        }}>
+            <div style={{
+                width: '50px',
+                height: '50px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                border: '3px solid #00ff88',
+                transform: `rotate(${bearing}deg)`,
+                transition: 'transform 0.1s linear'
+            }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="19" x2="12" y2="5"></line>
+                    <polyline points="5 12 12 5 19 12"></polyline>
+                </svg>
+            </div>
+            <div style={{
+                marginTop: '8px',
+                background: 'rgba(0,0,0,0.7)',
+                color: 'white',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap'
+            }}>
+                Ziel: {distDisplay}
+            </div>
+        </div>
+    );
+}
