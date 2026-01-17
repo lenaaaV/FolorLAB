@@ -790,6 +790,37 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
     }
   }, [API_KEY, zoom, hasLocation, isFollowing]);
 
+  // --- GENERIC TARGET DETECTION (New Missions) ---
+  useEffect(() => {
+    if (!missionMode?.target || !lat || !lng) return;
+
+    const [targetLng, targetLat] = missionMode.target;
+
+    // Dist calc
+    const R = 6371e3;
+    const phi1 = lat * Math.PI / 180;
+    const phi2 = targetLat * Math.PI / 180;
+    const dPhi = (targetLat - lat) * Math.PI / 180;
+    const dLambda = (targetLng - lng) * Math.PI / 180;
+    const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+
+    // Report Distance
+    if (missionMode.onDistanceUpdate) {
+      missionMode.onDistanceUpdate(dist);
+    }
+
+    // Check Arrival
+    const radius = missionMode.arrivalRadius || 5;
+    if (dist < radius) {
+      if (missionMode.onArrival) {
+        missionMode.onArrival();
+      }
+    }
+
+  }, [lat, lng, missionMode]);
+
   // 2. Safety Timeout (Fallback) - Removed to prioritize real GPS
   // useEffect(() => {
   //   const timer = setTimeout(() => {
@@ -862,9 +893,11 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
     let missionMarkers = [];
 
     if (missionMode?.active) {
-      // 1. HARD RESET FOG (User Request: "Alles mit Nebel bedeckt")
-      setVisitedPoints([]);
-      visitedPointsRef.current = [];
+      // 1. HARD RESET FOG (Only for first mission to start clean)
+      if (missionMode.missionId === 'fog_test') {
+        setVisitedPoints([]);
+        visitedPointsRef.current = [];
+      }
 
       // 2. Center Map on Start
       if (map.current) {
@@ -1549,6 +1582,29 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
           })()}
         />
       )}
+      {/* GENERIC ARRIVAL LOGIC (For new missions) */}
+      {missionMode?.active && missionMode.target && (() => {
+        // Calculate Distance
+        if (!lat || !lng) return null;
+
+        const [targetLng, targetLat] = missionMode.target;
+        const R = 6371e3;
+        const phi1 = lat * Math.PI / 180;
+        const phi2 = targetLat * Math.PI / 180;
+        const dPhi = (targetLat - lat) * Math.PI / 180;
+        const dLambda = (targetLng - lng) * Math.PI / 180;
+        const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const dist = R * c;
+
+        // Check Arrival (Default 5 meters)
+        const radius = missionMode.arrivalRadius || 5;
+
+        // Notify parent about distance (throttled/effect based would be better but this works for render-loop logic if careful)
+        // actually avoid side-effects in render. Use useEffect for side-effects below.
+
+        return null; // Logic moved to useEffect below
+      })()}
 
       {/* ARRIVAL POPUP (PROFESSIONAL / RESEARCH) */}
       {missionMode?.active && missionMode.missionId === 'fog_test' && (() => {
@@ -1629,7 +1685,15 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
                   background: '#1a1a1a', color: 'white', border: 'none',
                   padding: '12px 30px', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer',
                   fontWeight: '500'
-                }} onClick={() => window.location.reload()}>
+
+                }} onClick={() => {
+                  if (missionMode.onComplete) {
+                    missionMode.onComplete({ mission: 'fog_test', success: true });
+                  } else {
+                    console.log("Legacy Mode: Reloading");
+                    window.location.reload();
+                  }
+                }}>
                   Abschließen
                 </button>
               </div>

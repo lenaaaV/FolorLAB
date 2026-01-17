@@ -5,6 +5,9 @@ import StoryIntro from './components/Simulation/StoryIntro';
 import ProfilingScreen from './components/Simulation/ProfilingScreen';
 import ReactionTestScreen from './components/Simulation/ReactionTestScreen';
 import MissionFog from './components/Simulation/MissionFog';
+import MissionSecret from './components/Simulation/MissionSecret';
+import MissionDeal from './components/Simulation/MissionDeal';
+import MissionSocial from './components/Simulation/MissionSocial';
 import WelcomeScreen from './components/Simulation/WelcomeScreen'; // Keep for fallback imports
 import './App.css';
 
@@ -45,11 +48,94 @@ function App() {
   const [appLoaded, setAppLoaded] = useState(false);
 
   // Simulation State
-  // Flow: 'story' -> 'profiling' -> 'calibration' -> 'experiment'
+  // Flow: 'story' -> 'profiling' -> 'calibration' -> 'missions' -> 'experiment'
   const [simulationStep, setSimulationStep] = useState('story');
   const [activeProfileData, setActiveProfileData] = useState(null);
 
+  // Mission Navigation State
+  const [currentMissionIndex, setCurrentMissionIndex] = useState(0);
+  const [missionDataStore, setMissionDataStore] = useState({});
+
   const [loading, setLoading] = useState(true);
+
+  // Define Mission Sequence
+  const MISSIONS = [
+    // 1. Mission Fog (Existing)
+    {
+      id: 'fog_test',
+      component: MissionFog,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        startPosition: [8.5500, 49.8600],
+        target: [8.6560, 49.8750], // Uni/Home
+        arrivalRadius: 50,
+        missionId: 'fog_test'
+      }
+    },
+    // 2. Mission Secret (New)
+    {
+      id: 'secret_board',
+      component: MissionSecret,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        // Start where M1 ended (roughly)
+        startPosition: [8.6560, 49.8750],
+        target: [8.6580, 49.8760], // ~200m NE
+        arrivalRadius: 50,
+        missionId: 'secret_board'
+      }
+    },
+    // 3. Mission Deal (New)
+    {
+      id: 'business_deal',
+      component: MissionDeal,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        startPosition: [8.6580, 49.8760],
+        target: [8.6550, 49.8740], // ~100m SW
+        arrivalRadius: 50,
+        missionId: 'business_deal'
+      }
+    },
+    // 4. Mission Social (New)
+    {
+      id: 'social_proof',
+      component: MissionSocial,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        startPosition: [8.6550, 49.8740],
+        target: [8.6570, 49.8770], // ~300m N
+        arrivalRadius: 50,
+        missionId: 'social_proof'
+      }
+    }
+  ];
+
+  // Logic to handle Arrival Signals from Map
+  // We need state to track if user is currently at target
+  const [isAtTarget, setIsAtTarget] = useState(false);
+  const [distanceToTarget, setDistanceToTarget] = useState(null);
+
+  useEffect(() => {
+    // Reset arrival state when mission changes
+    setIsAtTarget(false);
+    setDistanceToTarget(null);
+  }, [currentMissionIndex]);
+
+  const handleArrival = () => {
+    if (!isAtTarget) {
+      console.log("📍 Arrived at target!");
+      setIsAtTarget(true);
+    }
+  };
+
+  const handleDistanceUpdate = (dist) => {
+    setDistanceToTarget(dist);
+  };
 
   // Debug Logging
   useEffect(() => {
@@ -114,74 +200,59 @@ function App() {
       });
     }
 
-    setSimulationStep('mission_1');
+    setSimulationStep('missions');
   };
 
-  const handleMissionOneComplete = (missionData) => {
-    console.log("Mission 1 Complete -> Exporting & Switching to Full Experiment");
+  /**
+   * Handle Mission Complete - Save to Supabase
+   * Stores mission results in the simulation_results table
+   * 
+   * @param {Object} payload - Mission data with mission name and metrics
+   */
+  const handleMissionComplete = async (payload) => {
+    console.log(`🏁 Mission ${currentMissionIndex + 1}/${MISSIONS.length} Complete:`, payload.mission);
 
-    // 1. Aggregate Data (Profile + Calibration + Mission 1)
-    const fullData = {
-      ...activeProfileData,
-      calibration: {
-        reaction_test: activeProfileData.calibration.reaction_test
-      },
-      mission_1: missionData,
-      completed_at: new Date().toISOString()
-    };
-
-    // 2. Download JSON
-    const testerId = activeProfileData?.tester_id || 'unknown';
-
+    // 1. Save to Supabase (Robust)
     try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", `folor_sim_${testerId}_session.json`);
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    } catch (e) {
-      console.error("Download failed", e);
+      const { data, error } = await supabase
+        .from('simulation_results')
+        .insert({
+          mission_name: payload.mission,
+          metrics: payload,
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      console.log('✅ Mission data saved to Supabase');
+    } catch (error) {
+      console.error('❌ Data Save Failed (Continuing flow anyway):', error.message);
     }
 
-    setSimulationStep('mission_2'); // Go to Mission 2 instead of Experiment
+    // 2. Aggregate Data in State (for local usage/export)
+    setMissionDataStore(prev => ({ ...prev, [payload.mission]: payload }));
+
+    // 3. Navigate to Next Mission
+    if (currentMissionIndex < MISSIONS.length - 1) {
+      console.log("➡️ Advancing to next mission...");
+      setCurrentMissionIndex(prev => prev + 1);
+    } else {
+      console.log('🎉 All Missions Complete!');
+      handleAllMissionsDone();
+    }
   };
 
-  const handleMissionTwoComplete = (missionTwoData) => {
-    console.log("Mission 2 Complete -> Exporting & Switching to Full Experiment");
-
-    // 1. Aggregate Data (Profile + Calibration + Mission 1 + Mission 2)
-    // Note: We need to assume mission_1 data is stored in state or merged here. 
-    // Since we didn't save mission_1 data to state in handleMissionOneComplete (only logged it), 
-    // we need to fix that first. 
-    // ACTUALLY: Let's store mission 1 data in a state variable so we can aggregate it later.
-
-    // REFACTOR: We need to save mission 1 data to state now.
-    // See below for the state update pattern.
-  };
-
-  // State for aggregating mission data
-  const [missionDataStore, setMissionDataStore] = useState({});
-
-  const handleMissionOneData = (data) => {
-    setMissionDataStore(prev => ({ ...prev, mission_1: data }));
-    setSimulationStep('mission_2');
-  };
-
-  const handleMissionTwoData = (data) => {
-    setMissionDataStore(prev => ({ ...prev, mission_2: data }));
-
-    // NOW we finalize
+  const handleAllMissionsDone = () => {
+    // Determine final data
     const finalData = {
       ...activeProfileData,
-      calibration: activeProfileData?.calibration || {},
-      mission_1: missionDataStore.mission_1, // From State
-      mission_2: data, // Current
+      missions: missionDataStore,
       completed_at: new Date().toISOString()
     };
 
+    // Auto-Download JSON
     downloadJson(finalData);
+
+    // Switch to Experiment/Free Roam mode
     setSimulationStep('experiment');
   };
 
@@ -199,6 +270,9 @@ function App() {
       console.error("Download failed", e);
     }
   };
+
+
+
 
   if (loading) {
     return <div className="loading-screen">Loading...</div>; // Visible loading state
@@ -225,30 +299,44 @@ function App() {
     return <ReactionTestScreen onComplete={handleCalibrationComplete} />;
   }
 
-  // 4. Mission 1: Fog of Curiosity (Virtual Walk)
-  if (simulationStep === 'mission_1') {
+  // 4. Mission Runner (Generic)
+  if (simulationStep === 'missions') {
+    const currentMissionConfig = MISSIONS[currentMissionIndex];
+    if (!currentMissionConfig) return <div>Error: Mission Index Out of Bounds</div>;
+
+    const MissionComponent = currentMissionConfig.component;
+
     return (
       <div className="App simulator-mode">
         <div className="simulation-status-bar">
           <div className="status-dot"></div>
-          <span>Mission: Fog of Curiosity</span>
+          <span>Mission {currentMissionIndex + 1} / {MISSIONS.length}: {currentMissionConfig.id}</span>
         </div>
         <div className="content-area">
           <ErrorBoundary>
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-              <Map
-                session={session}
-                appLoaded={appLoaded}
-                setAppLoaded={setAppLoaded}
-                missionMode={{
-                  active: true,
-                  isVirtual: true,
-                  // Much further away (Griesheim West) - approx 6-7km
-                  startPosition: [8.5500, 49.8600],
-                  missionId: 'fog_test'
-                }}
+              {/* Render Map for ALL active missions */}
+              {currentMissionConfig.missionMode?.active && (
+                <Map
+                  session={session}
+                  appLoaded={appLoaded}
+                  setAppLoaded={setAppLoaded}
+                  missionMode={{
+                    ...currentMissionConfig.missionMode,
+                    // Pass callbacks
+                    onComplete: handleMissionComplete,
+                    onArrival: handleArrival,
+                    onDistanceUpdate: handleDistanceUpdate
+                  }}
+                />
+              )}
+
+              {/* Render the Active Mission Component (Overlay) */}
+              <MissionComponent
+                onComplete={handleMissionComplete}
+                isAtTarget={isAtTarget}
+                distanceToTarget={distanceToTarget}
               />
-              <MissionFog onComplete={handleMissionOneData} />
             </div>
           </ErrorBoundary>
         </div>
@@ -256,33 +344,7 @@ function App() {
     );
   }
 
-  // 5. Mission 2: Clutter Test
-  if (simulationStep === 'mission_2') {
-    return (
-      <div className="App simulator-mode">
-        <div className="simulation-status-bar">
-          <div className="status-dot"></div>
-          <span>Mission: Focus</span>
-        </div>
-        <div className="content-area">
-          <ErrorBoundary>
-            <Map
-              session={session}
-              appLoaded={appLoaded}
-              setAppLoaded={setAppLoaded}
-              missionMode={{
-                active: true,
-                missionId: '2_clutter',
-                onOutcome: handleMissionTwoData
-              }}
-            />
-          </ErrorBoundary>
-        </div>
-      </div>
-    );
-  }
 
-  // 6. Experiment Phase (Map + Missions)
   // If session exists OR explicit experiment step (priority to experiment flow)
   if (session || simulationStep === 'experiment') {
     return (
