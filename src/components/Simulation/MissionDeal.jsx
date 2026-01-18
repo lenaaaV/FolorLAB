@@ -14,9 +14,10 @@ import './MissionOne.css'; // Re-use styling
  */
 export default function MissionDeal({ onComplete, isAtTarget, distanceToTarget }) {
     // Component States
-    const [status, setStatus] = useState('intro'); // intro | active | success
+    const [status, setStatus] = useState('intro'); // intro | active | feedback | success
     const [startTime, setStartTime] = useState(null);
     const [choice, setChoice] = useState(null); // 'chain' or 'local'
+    const [feedbackText, setFeedbackText] = useState(''); // Justification for 'chain' choice
 
     /**
      * Handle Start Button Click
@@ -29,10 +30,18 @@ export default function MissionDeal({ onComplete, isAtTarget, distanceToTarget }
 
     /**
      * Handle Choice Selection
-     * Record user's choice and transition to success
+     * Record user's choice. If 'chain' (Starbucks), ask for feedback.
      */
     const handleChoice = (selectedChoice) => {
         setChoice(selectedChoice);
+        if (selectedChoice === 'chain') {
+            setStatus('feedback');
+        } else {
+            setStatus('success');
+        }
+    };
+
+    const handleFeedbackSubmit = () => {
         setStatus('success');
     };
 
@@ -42,6 +51,7 @@ export default function MissionDeal({ onComplete, isAtTarget, distanceToTarget }
         onComplete({
             mission: 'business_deal',
             choice: choice,
+            feedback_text: feedbackText, // Save the explanation
             decision_time_ms: duration
         });
     }
@@ -64,6 +74,53 @@ export default function MissionDeal({ onComplete, isAtTarget, distanceToTarget }
                         style={{ width: '100%', padding: '15px', fontSize: '1.1rem' }}
                     >
                         Losgehen
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // ==================== FEEDBACK STATE (Why Corporate?) ====================
+    if (status === 'feedback') {
+        return (
+            <div className="mission-overlay">
+                <div className="mission-card" style={{ textAlign: 'center', padding: '40px', maxWidth: '500px' }}>
+                    <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>Kurze Frage 📝</h2>
+                    <p style={{ marginBottom: '25px', color: '#555', lineHeight: '1.5' }}>
+                        Du hast dich für <strong>Starbucks</strong> entschieden. <br />
+                        Was hat dich davon abgehalten, das lokale Angebot zu wählen?
+                    </p>
+
+                    <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="z.B. Ich wollte keine Risiken eingehen..."
+                        style={{
+                            width: '100%',
+                            minHeight: '100px',
+                            padding: '15px',
+                            borderRadius: '12px',
+                            border: '1px solid #ddd',
+                            fontSize: '1rem',
+                            marginBottom: '20px',
+                            fontFamily: 'inherit',
+                            resize: 'vertical'
+                        }}
+                        autoFocus
+                    />
+
+                    <button
+                        className="mission-btn-primary"
+                        onClick={handleFeedbackSubmit}
+                        disabled={feedbackText.length < 3} // Force at least some input
+                        style={{
+                            width: '100%',
+                            padding: '15px',
+                            opacity: feedbackText.length < 3 ? 0.5 : 1,
+                            cursor: feedbackText.length < 3 ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        Antworten & Fortfahren
                     </button>
                 </div>
             </div>
@@ -139,7 +196,7 @@ export default function MissionDeal({ onComplete, isAtTarget, distanceToTarget }
                 {/* Two Choice Cards Side-by-Side */}
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', // Responsive grid
                     gap: '20px',
                     marginBottom: '20px'
                 }}>

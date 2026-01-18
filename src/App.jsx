@@ -8,6 +8,8 @@ import MissionFog from './components/Simulation/MissionFog';
 import MissionSecret from './components/Simulation/MissionSecret';
 import MissionDeal from './components/Simulation/MissionDeal';
 import MissionSocial from './components/Simulation/MissionSocial';
+import MissionCreation from './components/Simulation/MissionCreation'; // New Mission 5
+import MissionIncentive from './components/Simulation/MissionIncentive'; // New Mission 6
 import WelcomeScreen from './components/Simulation/WelcomeScreen'; // Keep for fallback imports
 import './App.css';
 
@@ -112,6 +114,63 @@ function App() {
         arrivalRadius: 50,
         missionId: 'social_proof'
       }
+    },
+    // 5. Mission Creation (New - Henne Ui Problem)
+    {
+      id: 'creation_barrier',
+      component: MissionCreation,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        startPosition: [8.6570, 49.8770],
+        target: [8.6590, 49.8780], // Short walk to castle
+        arrivalRadius: 50,
+        missionId: 'creation_barrier'
+      }
+    },
+    // 6. Mission Incentive (New - Detour Magnet)
+    {
+      id: 'incentive_detour',
+      component: MissionIncentive,
+      missionMode: {
+        active: true,
+        isVirtual: true,
+        startPosition: [8.6570, 49.8770],
+        target: [8.6512, 49.8728], // TU Darmstadt (Uni)
+        arrivalRadius: 50,
+        missionId: 'incentive_detour',
+        badges: [
+          // 1. Near Start (Showcase)
+          {
+            id: 1, lng: 8.6565, lat: 49.8765, collected: false, xp: 50,
+            name: "Lost Key", icon: "🔑", desc: "Ein alter Schlüssel. Vielleicht passt er noch irgendwo?"
+          },
+
+          // 2. Detour North (Botanical Garden dir? ~150m off)
+          {
+            id: 2, lng: 8.6548, lat: 49.8780, collected: false, xp: 100,
+            name: "Forest Gem", icon: "💎", desc: "Ein funkelnder Stein aus dem Stadtwald."
+          },
+
+          // 3. Detour East (Side street, ~150m off)
+          {
+            id: 3, lng: 8.6590, lat: 49.8760, collected: false, xp: 100,
+            name: "Neon Star", icon: "⭐", desc: "Ein Überbleibsel aus der Cyber-Welt."
+          },
+
+          // 4. Detour West (Residential, ~200m off)
+          {
+            id: 4, lng: 8.6530, lat: 49.8735, collected: false, xp: 150,
+            name: "Hidden Pearl", icon: "🔮", desc: "Gut versteckt in der Seitengasse."
+          },
+
+          // 5. Far Detour (Efficiency Killer)
+          {
+            id: 5, lng: 8.6500, lat: 49.8750, collected: false, xp: 200,
+            name: "Golden Trophy", icon: "🏆", desc: "Die Belohnung für deinen großen Umweg!"
+          },
+        ]
+      }
     }
   ];
 
@@ -119,17 +178,22 @@ function App() {
   // We need state to track if user is currently at target
   const [isAtTarget, setIsAtTarget] = useState(false);
   const [distanceToTarget, setDistanceToTarget] = useState(null);
+  const [missionMetrics, setMissionMetrics] = useState(null);
 
   useEffect(() => {
     // Reset arrival state when mission changes
     setIsAtTarget(false);
+    // Reset arrival state when mission changes
+    setIsAtTarget(false);
     setDistanceToTarget(null);
+    setMissionMetrics(null);
   }, [currentMissionIndex]);
 
-  const handleArrival = () => {
+  const handleArrival = (metrics) => {
     if (!isAtTarget) {
-      console.log("📍 Arrived at target!");
+      console.log("📍 Arrived at target!", metrics);
       setIsAtTarget(true);
+      if (metrics) setMissionMetrics(metrics);
     }
   };
 
@@ -326,7 +390,11 @@ function App() {
                     // Pass callbacks
                     onComplete: handleMissionComplete,
                     onArrival: handleArrival,
-                    onDistanceUpdate: handleDistanceUpdate
+                    onDistanceUpdate: handleDistanceUpdate,
+                    onCollectibleFound: (item) => {
+                      // Trigger re-render of App implies re-render of MissionComponent
+                      setMissionMetrics(prev => ({ ...prev, lastItem: item }));
+                    }
                   }}
                 />
               )}
@@ -336,6 +404,7 @@ function App() {
                 onComplete={handleMissionComplete}
                 isAtTarget={isAtTarget}
                 distanceToTarget={distanceToTarget}
+                metrics={missionMetrics}
               />
             </div>
           </ErrorBoundary>

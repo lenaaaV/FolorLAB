@@ -15,6 +15,9 @@ import { fetchPlacesInBounds } from '../utils/overpass';
 import { generateBoardsForPlace } from '../utils/boardGenerator';
 
 export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
+  const missionModeRef = useRef(missionMode); // Stable ref for effects
+  missionModeRef.current = missionMode; // Always update to latest
+
   const mapContainer = useRef(null);
   const map = useRef(null);
   const userMarker = useRef(null);
@@ -29,12 +32,18 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   const [isFollowing, setIsFollowing] = useState(true);
 
   // Virtual Movement State
-  const [virtualPos, setVirtualPos] = useState(null); // { lng, lat }
+  const virtualPosRef = useRef(null); // { lng, lat }
   const [isWalking, setIsWalking] = useState(false);
   const animationRef = useRef(null);
   const routeCoordsRef = useRef(null);
   // --- MYSTERY GLOWS (Curiosity Test) ---
   const mysteryPointsRef = useRef([]); // [{lng, lat, found: false, id: 1}]
+  const collectedAnimationsRef = useRef([]); // [{x, y, text, startTime}]
+  const metricsRef = useRef({ distanceWalked: 0, collectedLights: 0 });
+  const lastMissionIdRef = useRef(null); // Stability Fix
+  const [currentDistance, setCurrentDistance] = useState(0);
+  const [currentBearing, setCurrentBearing] = useState(0);
+  const lastUpdateRef = useRef(0); // Throttle UI updates
 
   // Generate Mystery Points along the path (approximate corridor)
   const generateMysteryPoints = (startLng, startLat) => {
@@ -130,9 +139,41 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
 
     ctx.clearRect(0, 0, width, height);
 
+    // 0. Draw "Hidden" Target Glows (BEFORE Fog Fill)
+    // This allows them to be visible *through* the fog (faintly) and fully revealed when fog is cut.
+    if (missionMode?.target && missionMode?.active) {
+      const [tLng, tLat] = missionMode.target;
+      const { x, y } = map.current.project([tLng, tLat]);
+
+      // Only draw if on screen
+      if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+        const now = Date.now();
+        const pulse = (Math.sin(now / 400) + 1) / 2; // Faster pulse
+        const baseR = 15;
+        const r = baseR + (pulse * 15);
+
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
+        grad.addColorStop(0, 'rgba(76, 209, 55, 1)'); // Bright Green Core
+        grad.addColorStop(0.4, 'rgba(76, 209, 55, 0.6)');
+        grad.addColorStop(1, 'rgba(76, 209, 55, 0)');
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White center dot
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
     // 1. Draw Fog Background
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)'; // Slightly thicker fog to hide secrets better
     ctx.fillRect(0, 0, width, height);
 
     // 2. Draw Route ON TOP of Fog
@@ -162,6 +203,46 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       // Reset styles
       ctx.setLineDash([]);
       ctx.shadowBlur = 0;
+    }
+
+
+    // 2.5 FORCE VISIBLE TARGET for specific missions (Mission 4, 5, 6)
+    // Draw ON TOP of fog to guide user clearly.
+    if (missionMode?.target && missionMode?.active &&
+      (missionMode.missionId === 'creation_barrier' || missionMode.missionId === 'social_proof' || missionMode.missionId === 'incentive_detour')) {
+
+      const [tLng, tLat] = missionMode.target;
+      const { x, y } = map.current.project([tLng, tLat]);
+
+      // Only draw if on screen
+      if (x >= -50 && x <= width + 50 && y >= -50 && y <= height + 50) {
+        const now = Date.now();
+        const pulse = (Math.sin(now / 400) + 1) / 2; // Pulse 0..1
+        const baseR = 25;
+        const r = baseR + (pulse * 25); // Large pulsing radius
+
+        // Blue Glow for Creation, Green/Cyan for Social
+        const color = missionMode.missionId === 'creation_barrier'
+          ? '0, 122, 255'   // IOS Blue
+          : '0, 255, 255';  // Cyan
+
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 2);
+        grad.addColorStop(0, `rgba(${color}, 0.8)`);
+        grad.addColorStop(0.5, `rgba(${color}, 0.4)`);
+        grad.addColorStop(1, `rgba(${color}, 0)`);
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // White center dot
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
 
@@ -199,45 +280,153 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       ctx.arc(x, y, r * 2, 0, Math.PI * 2);
       ctx.fill();
 
+      // Draw Icon or Dot
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+
       // Add a "Question Mark" or symbol?
       // Maybe just the glow is more mysterious (User said "iwo verstecken")
     });
 
-    // 3. Cut Holes
+    // 3. Cut Holes & Tunnel (Path Construction)
     ctx.globalCompositeOperation = 'destination-out';
 
-    const bounds = map.current.getBounds();
-    const padding = 0.01;
-    const sw = bounds.getSouthWest();
-    const ne = bounds.getNorthEast();
+    // Get current User Pos for calculations
+    let currentLat = 50;
+    let currentLng = 8;
+    if (userMarker.current) {
+      const pos = userMarker.current.getLngLat();
+      currentLat = pos.lat;
+      currentLng = pos.lng;
+    } else if (map.current) {
+      currentLat = map.current.getCenter().lat;
+    }
 
-    const drawHole = (lng, lat, radiusMultiplier = 1) => {
-      if (lng < sw.lng - padding || lng > ne.lng + padding ||
-        lat < sw.lat - padding || lat > ne.lat + padding) {
-        return;
+    // 3a. Draw Continuous Path (Tunnel)
+    if (visitedPointsRef.current.length > 1) {
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      const currentRadius = getPixelRadius(currentLat);
+      ctx.lineWidth = currentRadius * 2.5; // Wider path
+      // SOFT EDGE: Large shadow blur
+      ctx.shadowBlur = currentRadius;
+      ctx.shadowColor = 'black';
+
+      ctx.beginPath();
+
+      visitedPointsRef.current.forEach((point, index) => {
+        const { x, y } = map.current.project([point.lng, point.lat]);
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+
+      // Connection to current user position
+      if (userMarker.current) {
+        const { x, y } = map.current.project([currentLng, currentLat]);
+        ctx.lineTo(x, y);
       }
 
-      const { x, y } = map.current.project([lng, lat]);
-      const radius = Math.max(getPixelRadius(lat) * radiusMultiplier, 1);
+      ctx.stroke();
 
-      const gradient = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      // Reset Shadow
+      ctx.shadowBlur = 0;
+    }
+
+    // 3b. Draw Head Hole (Current Position)
+    const drawHole = (lng, lat) => {
+      const { x, y } = map.current.project([lng, lat]);
+      const radius = Math.max(getPixelRadius(lat), 1);
+
+      // Use simple arc for destination-out with soft edge via gradient or shadow
+      const gradient = ctx.createRadialGradient(x, y, radius * 0.5, x, y, radius * 1.5);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)'); // Full cut
+      gradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.8)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Fade to fog
 
       ctx.fillStyle = gradient;
       ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.arc(x, y, radius * 1.5, 0, Math.PI * 2);
       ctx.fill();
     };
 
     if (userMarker.current) {
-      const pos = userMarker.current.getLngLat();
-      drawHole(pos.lng, pos.lat);
+      drawHole(currentLng, currentLat);
     }
 
-    visitedPointsRef.current.forEach(point => {
-      drawHole(point.lng, point.lat);
-    });
+    if (visitedPointsRef.current.length === 1) {
+      drawHole(visitedPointsRef.current[0].lng, visitedPointsRef.current[0].lat);
+    }
+
+    // 4. DRAW BADGES (Mission 6) - Explicitly ON TOP
+    if (missionMode?.active && missionMode.missionId === 'incentive_detour') {
+      mysteryPointsRef.current.forEach(point => {
+        if (point.found) return; // Hide if collected
+
+        const { x, y } = map.current.project([point.lng, point.lat]);
+        // Only draw if on screen
+        if (x < -50 || x > width + 50 || y < -50 || y > height + 50) return;
+
+        // RENDER BADGE (Gold Diamond - CLEARLY VISIBLE)
+        const now = Date.now();
+        const bounce = Math.sin(now / 300) * 5; // Bouncing up/down
+
+        ctx.globalCompositeOperation = 'source-over'; // Switch back to drawing
+
+        // Glow
+        const grad = ctx.createRadialGradient(x, y + bounce, 0, x, y + bounce, 40);
+        grad.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
+        grad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y + bounce, 40, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Diamond Shape
+        ctx.fillStyle = '#FFD700'; // Gold
+        ctx.strokeStyle = '#DAA520'; // Darker Gold
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(x, y + bounce - 18);
+        ctx.lineTo(x + 18, y + bounce);
+        ctx.lineTo(x, y + bounce + 18);
+        ctx.lineTo(x - 18, y + bounce);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
+    // 5. DRAW FLOATING ANIMATIONS (XP POPS)
+    if (collectedAnimationsRef.current.length > 0) {
+      const now = Date.now();
+      ctx.font = 'bold 20px Arial';
+      ctx.textAlign = 'center';
+
+      collectedAnimationsRef.current = collectedAnimationsRef.current.filter(anim => {
+        const age = now - anim.startTime;
+        if (age > 1500) return false; // Remove after 1.5s
+
+        const progress = age / 1500;
+        const floatY = -50 * progress; // Float up 50px
+        const alpha = 1 - Math.pow(progress, 3); // Fade out late
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.lineWidth = 3;
+
+        ctx.strokeText(anim.text, anim.x, anim.y + floatY);
+        ctx.fillText(anim.text, anim.x, anim.y + floatY);
+
+        return true;
+      });
+    }
   };
 
   // --- Route Rendering Logic ---
@@ -290,8 +479,19 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   const walkTo = (targetLng, targetLat) => {
     if (!missionMode?.isVirtual || isWalking) return;
 
-    const startLng = virtualPos ? virtualPos.lng : lng;
-    const startLat = virtualPos ? virtualPos.lat : lat;
+    // Use refs for start position to avoid state dependency
+    let startLng, startLat;
+    if (virtualPosRef.current) {
+      startLng = virtualPosRef.current.lng;
+      startLat = virtualPosRef.current.lat;
+    } else if (userMarker.current) {
+      const pos = userMarker.current.getLngLat();
+      startLng = pos.lng;
+      startLat = pos.lat;
+    } else {
+      startLng = lng;
+      startLat = lat;
+    }
 
     // Calculate distance
     const R = 6371e3; // Earth radius in meters
@@ -323,38 +523,142 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       const currentLng = startLng + (targetLng - startLng) * progress;
       const currentLat = startLat + (targetLat - startLat) * progress;
 
-      setVirtualPos({ lng: currentLng, lat: currentLat });
+      // Track Distance Walked (approx based on step)
+      // Real distance logic would be better but this is fine for now (accumulate delta)
+      // Better: Calculate delta from last frame virtualPos
+      if (virtualPosRef.current) {
+        const dStep = 6371e3 * 2 * Math.atan2(
+          Math.sqrt(Math.pow(Math.sin(((currentLat - virtualPosRef.current.lat) * Math.PI / 180) / 2), 2) + Math.cos(virtualPosRef.current.lat * Math.PI / 180) * Math.cos(currentLat * Math.PI / 180) * Math.pow(Math.sin(((currentLng - virtualPosRef.current.lng) * Math.PI / 180) / 2), 2)),
+          Math.sqrt(1 - (Math.pow(Math.sin(((currentLat - virtualPosRef.current.lat) * Math.PI / 180) / 2), 2) + Math.cos(virtualPosRef.current.lat * Math.PI / 180) * Math.cos(currentLat * Math.PI / 180) * Math.pow(Math.sin(((currentLng - virtualPosRef.current.lng) * Math.PI / 180) / 2), 2)))
+        );
+        metricsRef.current.distanceWalked += dStep;
+      }
+
+      // Virtual Pos Update
+      virtualPosRef.current = { lng: currentLng, lat: currentLat };
+
+      // Check Collection of Mystery Lights
+      mysteryPointsRef.current.forEach(point => {
+        if (!point.found) {
+          const dToPoint = 6371e3 * 2 * Math.atan2(
+            Math.sqrt(Math.pow(Math.sin(((point.lat - currentLat) * Math.PI / 180) / 2), 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(point.lat * Math.PI / 180) * Math.pow(Math.sin(((point.lng - currentLng) * Math.PI / 180) / 2), 2)),
+            Math.sqrt(1 - (Math.pow(Math.sin(((point.lat - currentLat) * Math.PI / 180) / 2), 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(point.lat * Math.PI / 180) * Math.pow(Math.sin(((point.lng - currentLng) * Math.PI / 180) / 2), 2)))
+          );
+
+          if (dToPoint < 30) { // 30m collection radius
+            point.found = true;
+            metricsRef.current.collectedLights += 1;
+
+            // Trigger Animation / Callback
+            if (missionModeRef.current?.missionId === 'incentive_detour') {
+              // Notify App -> App updates MissionIncentive -> Popup appears
+              if (missionModeRef.current.onCollectibleFound) {
+                missionModeRef.current.onCollectibleFound({
+                  ...point,
+                  found: true
+                });
+              }
+            }
+          }
+        }
+      });
 
       // Update Marker
       if (userMarker.current) {
         userMarker.current.setLngLat([currentLng, currentLat]);
       }
 
-      // Update Fog & Visited
-      setLat(currentLat);
-      setLng(currentLng);
-      // We manually trigger fog redraw via RAF loop reading these value, 
-      // but visited points need update to clear path
-      setVisitedPoints(prev => {
-        const lastPoint = prev[prev.length - 1];
-        if (lastPoint) {
-          const d = Math.sqrt(Math.pow(lastPoint.lng - currentLng, 2) + Math.pow(lastPoint.lat - currentLat, 2));
-          if (d < 0.00005) return prev; // Filter close points
+      // Smooth Follow (Per Frame Camera Update)
+      if (map.current && isFollowing) {
+        map.current.jumpTo({
+          center: [currentLng, currentLat],
+          zoom: map.current.getZoom(), // Preserve zoom
+          essential: true // Ensure it happens
+        });
+      }
+
+      // Update Fog & Visited (Ref Only)
+      // Filter close points
+      const lastPoint = visitedPointsRef.current[visitedPointsRef.current.length - 1];
+      let shouldAdd = true;
+      if (lastPoint) {
+        const d = Math.sqrt(Math.pow(lastPoint.lng - currentLng, 2) + Math.pow(lastPoint.lat - currentLat, 2));
+        if (d < 0.00005) shouldAdd = false;
+      }
+
+      if (shouldAdd) {
+        visitedPointsRef.current.push({ lng: currentLng, lat: currentLat });
+      }
+
+      // Check Arrival specific for Virtual Walk (using stable Ref)
+      if (missionModeRef.current?.target && missionModeRef.current?.active) {
+        const [tLng, tLat] = missionModeRef.current.target;
+        const d = 6371e3 * 2 * Math.atan2(
+          Math.sqrt(Math.pow(Math.sin(((tLat - currentLat) * Math.PI / 180) / 2), 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) * Math.pow(Math.sin(((tLng - currentLng) * Math.PI / 180) / 2), 2)),
+          Math.sqrt(1 - (Math.pow(Math.sin(((tLat - currentLat) * Math.PI / 180) / 2), 2) + Math.cos(currentLat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) * Math.pow(Math.sin(((tLng - currentLng) * Math.PI / 180) / 2), 2)))
+        );
+
+        // Throttled Updates (100ms = 10fps for UI, sufficient for text/arrow)
+        if (Date.now() - lastUpdateRef.current > 100) {
+          if (missionModeRef.current.onDistanceUpdate) {
+            missionModeRef.current.onDistanceUpdate(d);
+          }
+
+          setCurrentDistance(d);
+
+          // Calculate Bearing for Arrow
+          const y = Math.sin((tLng - currentLng) * Math.PI / 180) * Math.cos(tLat * Math.PI / 180);
+          const x = Math.cos(currentLat * Math.PI / 180) * Math.sin(tLat * Math.PI / 180) -
+            Math.sin(currentLat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) * Math.cos((tLng - currentLng) * Math.PI / 180);
+          const brng = (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+          setCurrentBearing(brng);
+
+          lastUpdateRef.current = Date.now();
         }
-        const newPoints = [...prev, { lng: currentLng, lat: currentLat }];
-        visitedPointsRef.current = newPoints;
-        return newPoints;
-      });
+
+        const radius = missionMode.arrivalRadius || 20; // Increased default slightly for virtual
+        if (d < radius && missionMode.onArrival) {
+          missionMode.onArrival({
+            distanceWalked: Math.round(metricsRef.current.distanceWalked),
+            collectedLights: metricsRef.current.collectedLights,
+            totalLights: mysteryPointsRef.current.length,
+            fogPath: visitedPointsRef.current // The raw path data
+          });
+        }
+      }
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animateWalk);
       } else {
         setIsWalking(false);
+        setVisitedPoints([...visitedPointsRef.current]);
+        setLng(targetLng);
+        setLat(targetLat);
       }
     };
 
     animationRef.current = requestAnimationFrame(animateWalk);
   };
+
+  // Initial Distance Check (for static start)
+  useEffect(() => {
+    // Don't fight with the virtual walk loop
+    if (isWalking) return;
+
+    const mm = missionModeRef.current;
+    if (mm?.active && mm?.target && lng && lat) {
+      const [tLng, tLat] = mm.target;
+      const dist = 6371e3 * 2 * Math.atan2(
+        Math.sqrt(Math.pow(Math.sin(((tLat - lat) * Math.PI / 180) / 2), 2) + Math.cos(lat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) * Math.pow(Math.sin(((tLng - lng) * Math.PI / 180) / 2), 2)),
+        Math.sqrt(1 - (Math.pow(Math.sin(((tLat - lat) * Math.PI / 180) / 2), 2) + Math.cos(lat * Math.PI / 180) * Math.cos(tLat * Math.PI / 180) * Math.pow(Math.sin(((tLng - lng) * Math.PI / 180) / 2), 2)))
+      );
+
+      if (mm.onDistanceUpdate) {
+        mm.onDistanceUpdate(dist);
+      }
+      setCurrentDistance(dist);
+    }
+  }, [missionMode?.missionId, lng, lat, isWalking]); // Only re-run if mission ID or static position changes
 
   // Click Listener for Virtual Walk
   useEffect(() => {
@@ -374,7 +678,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
         map.current.getCanvas().style.cursor = '';
       }
     };
-  }, [missionMode, virtualPos, isWalking, lng, lat]);
+  }, [missionMode, isWalking]); // Removed lng/lat/virtualPos deps as we use refs now
 
 
   // RAF Loop for smooth animation
@@ -685,17 +989,16 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   */
 
   useEffect(() => {
+    const mm = missionModeRef.current;
+
     // 0. VIRTUAL MODE (Override Geolocation)
-    if (missionMode?.isVirtual) {
-      if (!hasLocation && missionMode.startPosition) {
-        const [startLng, startLat] = missionMode.startPosition;
+    if (mm?.isVirtual) {
+      if (!hasLocation && mm.startPosition) {
+        const [startLng, startLat] = mm.startPosition;
         generateMysteryPoints(startLng, startLat);
         setLng(startLng);
         setLat(startLat);
-        setVirtualPos({ lng: startLng, lat: startLat });
-        setHasLocation(true);
-        initMap(startLng, startLat);
-        setVirtualPos({ lng: startLng, lat: startLat });
+        virtualPosRef.current = { lng: startLng, lat: startLat };
         setHasLocation(true);
         initMap(startLng, startLat);
 
@@ -731,6 +1034,8 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
     if ('geolocation' in navigator) {
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
+          if (missionModeRef.current?.isVirtual) return; // Disable real GPS in virtual mode
+
           const { longitude, latitude } = position.coords;
           console.log("Geolocation success:", longitude, latitude);
 
@@ -788,11 +1093,12 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       console.warn('Geolocation not supported');
       // Fallback handled by safety timeout
     }
-  }, [API_KEY, zoom, hasLocation, isFollowing]);
+  }, [API_KEY, zoom, hasLocation, isFollowing, missionMode?.missionId]);
 
   // --- GENERIC TARGET DETECTION (New Missions) ---
   useEffect(() => {
-    if (!missionMode?.target || !lat || !lng) return;
+    // Conflict Prevention: If virtual, let the animation loop handle updates.
+    if (!missionMode?.target || !lat || !lng || missionMode?.isVirtual) return;
 
     const [targetLng, targetLat] = missionMode.target;
 
@@ -838,6 +1144,12 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
 
   // Load visited points from Supabase
   useEffect(() => {
+    // If in Fog Test mission, start clean (don't load old points)
+    if (missionMode?.missionId === 'fog_test') {
+      setDbPointsLoaded(true);
+      return;
+    }
+
     if (session?.user?.id) {
       const fetchPoints = async () => {
         const { data, error } = await supabase
@@ -888,11 +1200,37 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
   // }, [visitedPoints]); // Handled by RAF
 
   // --- MISSION MODE SETUP ---
+  const prevMissionIdRef = useRef(null);
+
+  // --- Initialize Mission Data (Badges/Metrics) ---
+  useEffect(() => {
+    // Only initializing if Mission ID actually CHANGED
+    if (missionMode?.missionId !== lastMissionIdRef.current) {
+      lastMissionIdRef.current = missionMode?.missionId;
+
+      if (missionMode?.missionId === 'incentive_detour' && missionMode.badges) {
+        // Load Badges from Config
+        mysteryPointsRef.current = missionMode.badges.map(b => ({ ...b, found: false }));
+        metricsRef.current = { distanceWalked: 0, collectedLights: 0 };
+        setVisitedPoints([]); // Clear path
+        visitedPointsRef.current = [];
+      } else if (missionMode?.active && missionMode.missionId !== 'incentive_detour') {
+        // For Mission 1, generate random if needed
+        if (mysteryPointsRef.current.length === 0 && missionMode.missionId === 'fog_test' && lat) {
+          generateMysteryPoints(lng, lat);
+        }
+      }
+    }
+  }, [missionMode?.missionId, lat, lng]); // Added lat, lng to dependencies for generateMysteryPoints
+
   useEffect(() => {
     // Refs for cleanup
     let missionMarkers = [];
 
-    if (missionMode?.active) {
+    // Only run setup if mission is active AND it's a NEW mission
+    if (missionMode?.active && missionMode?.missionId !== prevMissionIdRef.current) {
+      console.log(`🚀 Starting Mission: ${missionMode.missionId}`);
+
       // 1. HARD RESET FOG (Only for first mission to start clean)
       if (missionMode.missionId === 'fog_test') {
         setVisitedPoints([]);
@@ -918,7 +1256,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
           map.current.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: [] } });
         }
 
-        // NO RED LINE for Research Version (User Request)
+        // NO RED LINE for Research Version
         // We rely solely on the Arrow Indicator.
 
         setTimeout(() => {
@@ -940,7 +1278,6 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
           el.style.justifyContent = 'center';
           el.style.boxShadow = '0 0 15px rgba(0,255,136, 0.6)';
           el.style.border = '3px solid #00ff88';
-          el.style.className = 'mission-target-marker'; // Tag for cleanup
           el.innerHTML = '<span style="font-size:24px;">🏁</span>';
 
           new maplibregl.Marker({ element: el })
@@ -949,13 +1286,15 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
 
         }, 1500);
       }
+
+      // Update Ref at the end
+      prevMissionIdRef.current = missionMode.missionId;
     }
 
     return () => {
-      // Cleanup
-      missionMarkers.forEach(marker => marker.remove());
+      // Cleanup if needed
     };
-  }, [missionMode]); // Removed appLoaded to allow re-runs on mode switch
+  }, [missionMode?.missionId]);
 
   // --- MISSION 2 STATE ---
   const [m2State, setM2State] = useState('intro'); // intro | active | success | fail
@@ -1562,26 +1901,37 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
         )}
       </div>
 
-      {/* Off-screen Target Indicator */}
+      {/* Off-screen Target Indicator (Mission 1) */}
       {missionMode?.active && missionMode.missionId === 'fog_test' && (
         <TargetIndicator
           userLat={lat}
           userLng={lng}
           targetLat={49.8750}
           targetLng={8.6560}
-          distance={(() => {
-            if (!lat || !lng) return 0;
-            const R = 6371e3;
-            const phi1 = lat * Math.PI / 180;
-            const phi2 = 49.8750 * Math.PI / 180;
-            const dPhi = (49.8750 - lat) * Math.PI / 180;
-            const dLambda = (8.6560 - lng) * Math.PI / 180;
-            const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-          })()}
+          distance={currentDistance}
+          bearing={currentBearing}
         />
       )}
+
+      {/* GLOWING TARGET POINT (Mission 2) - Under Fog */}
+      {missionMode?.active && (missionMode.missionId === 'secret_board' || missionMode.missionId === 'fog_test') && missionMode.target && (() => {
+        // We render this as a simple absolute div projected onto the map? 
+        // No, simpler to use a React Portal or just a Marker if we can control z-index.
+        // Let's use a Marker created in useEffect or similar? 
+        // Easier: Just render a marker-like div if we had a <Marker> component. 
+        // Since we don't have a clean React <Marker> component exposed here (using maplibregl directly),
+        // I will rely on the fact that I can't easily inject a React component into the map pane *under* the canvas without a Portal.
+
+        // ALTERNATIVE: Draw the glow on the canvas *before* the fog fill? 
+        // Yes, in `drawFog`. That's what `mysteryPointsRef` was doing.
+        // But the user wants a SPECIFIC point for Mission 2.
+
+        // I will ADD the Mission 2 Target to `mysteryPointsRef` or similar logic in `drawFog`.
+        // Actually, `drawFog` already has the "drawMysteryGlows" logic locally defined?
+        // Let's modify `drawFog` to specifically draw the Mission 2 target glow.
+        return null;
+      })()
+      }
       {/* GENERIC ARRIVAL LOGIC (For new missions) */}
       {missionMode?.active && missionMode.target && (() => {
         // Calculate Distance
@@ -1607,101 +1957,7 @@ export default function Map({ session, appLoaded, setAppLoaded, missionMode }) {
       })()}
 
       {/* ARRIVAL POPUP (PROFESSIONAL / RESEARCH) */}
-      {missionMode?.active && missionMode.missionId === 'fog_test' && (() => {
-        if (!lat || !lng) return null;
-        const R = 6371e3;
-        const phi1 = lat * Math.PI / 180;
-        const phi2 = 49.8750 * Math.PI / 180;
-        const dPhi = (49.8750 - lat) * Math.PI / 180;
-        const dLambda = (8.6560 - lng) * Math.PI / 180;
-        const a = Math.sin(dPhi / 2) * Math.sin(dPhi / 2) + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const dist = R * c;
 
-        if (dist < 80) { // Arrival
-          return (
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: '#ffffff',
-              padding: '40px',
-              borderRadius: '12px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-              textAlign: 'left',
-              zIndex: 2000,
-              maxWidth: '500px',
-              width: '90%',
-              border: '1px solid #e0e0e0',
-              fontFamily: "'Inter', sans-serif"
-            }}>
-              <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem', color: '#1a1a1a', fontWeight: '600' }}>Ziel erreicht.</h2>
-              <p style={{ fontSize: '1rem', color: '#555', marginBottom: '30px' }}>
-                Vielen Dank für die Teilnahme. Bitte beantworten Sie kurz diese zwei Fragen zur Auswertung der Simulation.
-              </p>
-
-              {/* Question 1 */}
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '10px', color: '#333' }}>
-                  1. Wie sicher haben Sie sich bei der Orientierung gefühlt?
-                </label>
-                <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f5f5f5', padding: '10px', borderRadius: '8px' }}>
-                  {['Sehr unsicher', 'Unsicher', 'Neutral', 'Sicher', 'Sehr sicher'].map((label, i) => (
-                    <button key={i} style={{
-                      border: '1px solid #ddd', background: 'white', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', flex: 1, margin: '0 5px'
-                    }} onClick={(e) => {
-                      // Simple visual selection logic could go here, for now just alert/log 
-                      e.target.style.borderColor = '#3498db';
-                      e.target.style.background = '#ebf5fb';
-                    }}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Question 2 */}
-              <div style={{ marginBottom: '30px' }}>
-                <label style={{ display: 'block', fontWeight: '500', marginBottom: '10px', color: '#333' }}>
-                  2. Hat der Nebel Ihre Routenwahl maßgeblich beeinflusst?
-                </label>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  <button style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
-                    onClick={(e) => { e.target.style.background = '#ebf5fb'; e.target.style.borderColor = '#3498db'; }}
-                  >
-                    Nein, ich folgte strikt der Richtung.
-                  </button>
-                  <button style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}
-                    onClick={(e) => { e.target.style.background = '#ebf5fb'; e.target.style.borderColor = '#3498db'; }}
-                  >
-                    Ja, ich musste oft ausweichen/suchen.
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid #eee', paddingTop: '20px', textAlign: 'right' }}>
-                <button style={{
-                  background: '#1a1a1a', color: 'white', border: 'none',
-                  padding: '12px 30px', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer',
-                  fontWeight: '500'
-
-                }} onClick={() => {
-                  if (missionMode.onComplete) {
-                    missionMode.onComplete({ mission: 'fog_test', success: true });
-                  } else {
-                    console.log("Legacy Mode: Reloading");
-                    window.location.reload();
-                  }
-                }}>
-                  Abschließen
-                </button>
-              </div>
-            </div>
-          );
-        }
-        return null;
-      })()}
 
       {/* --- MISSION 2 CLUTTER OVERLAY --- */}
       {

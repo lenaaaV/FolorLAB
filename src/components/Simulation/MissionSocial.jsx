@@ -137,100 +137,133 @@ export default function MissionSocial({ onComplete, isAtTarget, distanceToTarget
             <div className="mission-card" style={{ textAlign: 'center', padding: '40px', maxWidth: '700px' }}>
                 <h2 style={{ fontSize: '1.5rem', marginBottom: '30px' }}>Welches Board möchtest du zuerst sehen?</h2>
 
-                {/* Map Simulation with Two Pins - KEPT STYLING FOR CONSISTENCY */}
+                {/* Selection Cards Container */}
                 <div style={{
-                    background: 'linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)',
-                    padding: '40px 20px',
-                    borderRadius: '16px',
-                    marginBottom: '20px',
-                    position: 'relative',
-                    minHeight: '300px',
-                    border: '2px solid #4dd0e1'
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'stretch',
+                    gap: '15px',
+                    marginBottom: '30px',
+                    flexWrap: 'nowrap', // Force side-by-side
+                    overflowX: 'auto' // Safety scroll for small screens
                 }}>
-                    {/* Decorative Map Background */}
-                    <div style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        fontSize: '6rem',
-                        opacity: 0.1,
-                        pointerEvents: 'none'
-                    }}>
-                        🗺️
-                    </div>
-
-                    {/* Pin A: Anonymous (Top Left) */}
+                    {/* Pin A: Anonymous */}
                     <div
                         onClick={() => handlePinClick('anonymous')}
                         style={{
-                            position: 'absolute',
-                            top: '60px',
-                            left: '80px',
                             background: 'white',
-                            padding: '20px',
-                            borderRadius: '12px',
+                            padding: '30px 20px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            maxWidth: '200px',
-                            border: '2px solid #4facfe'
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                            transition: 'all 0.3s ease',
+                            flex: 1, // Flexible width
+                            minWidth: '140px', // Allow shrinking
+                            border: '2px solid transparent',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.05) translateY(-4px)';
-                            e.currentTarget.style.boxShadow = '0 10px 30px rgba(79,172,254,0.3)';
+                            e.currentTarget.style.transform = 'translateY(-5px)';
+                            e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.12)';
+                            e.currentTarget.style.borderColor = '#4facfe';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'scale(1) translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+                            e.currentTarget.style.borderColor = 'transparent';
                         }}
                     >
-                        <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📌</div>
-                        <h3 style={{ fontSize: '1rem', marginBottom: '8px', color: '#2c3e50' }}>
+                        <div style={{
+                            fontSize: '3rem',
+                            marginBottom: '15px',
+                            background: '#f0f9ff',
+                            width: '80px',
+                            height: '80px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%'
+                        }}>
+                            ⭐
+                        </div>
+                        <h3 style={{ fontSize: '1.2rem', marginBottom: '8px', color: '#2c3e50' }}>
                             Pin A
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#555', margin: '0 0 8px 0' }}>
-                            Anonyme Empfehlung
+                        <p style={{ fontSize: '0.9rem', color: '#666', margin: '0 0 15px 0', lineHeight: '1.4' }}>
+                            Eine beliebte Empfehlung aus der Community.
                         </p>
-                        <div style={{ fontSize: '0.9rem', color: '#f39c12' }}>
-                            ⭐⭐⭐⭐ (4 Sterne)
+                        <div style={{
+                            marginTop: 'auto',
+                            background: '#fff3cd',
+                            color: '#856404',
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                        }}>
+                            4.8 Sterne
                         </div>
                     </div>
 
-                    {/* Pin B: Friend (Bottom Right) */}
+                    {/* Pin B: Friend */}
                     <div
                         onClick={() => handlePinClick('friend')}
                         style={{
-                            position: 'absolute',
-                            bottom: '60px',
-                            right: '80px',
                             background: 'white',
-                            padding: '20px',
-                            borderRadius: '12px',
+                            padding: '30px 20px',
+                            borderRadius: '16px',
                             cursor: 'pointer',
-                            boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            maxWidth: '200px',
-                            border: '2px solid #f5576c'
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                            transition: 'all 0.3s ease',
+                            flex: 1, // Flexible width
+                            minWidth: '140px', // Allow shrinking
+                            border: '2px solid transparent',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center'
                         }}
                         onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'scale(1.05) translateY(-4px)';
-                            e.currentTarget.style.boxShadow = '0 10px 30px rgba(245,87,108,0.3)';
+                            e.currentTarget.style.transform = 'translateY(-5px)';
+                            e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.12)';
+                            e.currentTarget.style.borderColor = '#f5576c';
                         }}
                         onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'scale(1) translateY(0)';
-                            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.08)';
+                            e.currentTarget.style.borderColor = 'transparent';
                         }}
                     >
-                        <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📍</div>
-                        <h3 style={{ fontSize: '1rem', marginBottom: '8px', color: '#2c3e50' }}>
+                        <div style={{
+                            fontSize: '3rem',
+                            marginBottom: '15px',
+                            background: '#fff0f1',
+                            width: '80px',
+                            height: '80px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%'
+                        }}>
+                            📍
+                        </div>
+                        <h3 style={{ fontSize: '1.2rem', marginBottom: '8px', color: '#2c3e50' }}>
                             Pin B
                         </h3>
-                        <p style={{ fontSize: '0.85rem', color: '#555', margin: '0 0 8px 0', fontWeight: '600' }}>
-                            Deine Freundin Lena
+                        <p style={{ fontSize: '0.9rem', color: '#666', margin: '0 0 15px 0', lineHeight: '1.4' }}>
+                            Deine Freundin <strong>Lena</strong> hat hier etwas gepostet.
                         </p>
-                        <div style={{ fontSize: '0.85rem', color: '#888' }}>
-                            hat hier ein Board hinterlassen
+                        <div style={{
+                            marginTop: 'auto',
+                            background: '#e8f5e9',
+                            color: '#2e7d32',
+                            padding: '5px 12px',
+                            borderRadius: '20px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                        }}>
+                            Von Freunden
                         </div>
                     </div>
                 </div>

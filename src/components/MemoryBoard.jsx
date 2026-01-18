@@ -411,10 +411,12 @@ function getBearing(startLat, startLng, destLat, destLng) {
 }
 
 // --- TARGET INDICATOR COMPONENT ---
-export function TargetIndicator({ userLat, userLng, targetLat, targetLng, distance }) {
-    if (!userLat || !userLng) return null;
+export function TargetIndicator({ userLat, userLng, targetLat, targetLng, distance, bearing: explicitBearing }) {
+    if ((!userLat || !userLng) && explicitBearing === undefined) return null;
 
-    const bearing = getBearing(userLat, userLng, targetLat, targetLng);
+    const bearing = explicitBearing !== undefined
+        ? explicitBearing
+        : getBearing(userLat, userLng, targetLat, targetLng);
 
     // Format distance
     const distDisplay = distance > 1000

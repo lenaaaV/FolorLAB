@@ -137,31 +137,34 @@ export default function MissionSecret({ onComplete, isAtTarget, distanceToTarget
             <div className="mission-card" style={{ textAlign: 'center', padding: '20px', pointerEvents: 'auto', maxWidth: '400px' }}>
                 <h2 style={{ fontSize: '1.2rem', marginBottom: '10px' }}>Suche das Geheimnis 📍</h2>
 
-                {/* Blurred Preview Image */}
+                {/* Blurred Preview Image (Enhanced) */}
                 <div
                     onClick={handleBlurClick}
                     style={{
                         position: 'relative',
                         marginBottom: '15px',
                         cursor: 'pointer',
-                        borderRadius: '12px',
+                        borderRadius: '16px',
                         overflow: 'hidden',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                        boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+                        background: '#f0f2f5'
                     }}
                 >
                     <div
                         style={{
                             width: '100%',
-                            height: '120px',
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            filter: 'blur(10px)',
+                            height: '140px',
+                            background: 'linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%)', // Pastel Green gradient
+                            backdropFilter: 'blur(20px)', // Stronger blur
+                            WebkitBackdropFilter: 'blur(20px)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '2rem'
+                            fontSize: '3rem',
+                            opacity: 0.8
                         }}
                     >
-                        🌟✨
+                        🎁
                     </div>
                     <div style={{
                         position: 'absolute',
@@ -175,8 +178,15 @@ export default function MissionSecret({ onComplete, isAtTarget, distanceToTarget
                         fontSize: '0.8rem',
                         pointerEvents: 'none'
                     }}>
-                        🔒 Verschwommen
+                        🔒 Erst sichtbar vor Ort
                     </div>
+                    {/* Overlay Blur Effect Layer */}
+                    <div style={{
+                        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                        backdropFilter: 'blur(15px)',
+                        background: 'rgba(255,255,255,0.3)',
+                        pointerEvents: 'none'
+                    }}></div>
                 </div>
 
                 <div style={{ background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
